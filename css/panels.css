@@ -324,3 +324,12 @@
   border-color: color-mix(in srgb, var(--warn) 45%, var(--line));
   background: color-mix(in srgb, var(--warn) 7%, transparent);
 }
+
+.checkout__card { display: grid; gap: var(--sp-2); margin: var(--sp-2) 0; }
+.checkout__card-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+.checkout__fine {
+  font-size: 0.7rem;
+  color: var(--text-faint);
+  text-align: center;
+  margin-top: calc(var(--sp-2) * -1);
+}

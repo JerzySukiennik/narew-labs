@@ -136,15 +136,27 @@ function checkout(tierId, root) {
       <div class="checkout__row"><span>Rozliczenie</span><span class="mono">${tier.price ? 'miesięcznie' : 'brak'}</span></div>
       <div class="checkout__row checkout__row--total"><span>Do zapłaty</span><span class="mono">${tier.price ? `${tier.price},00 zł` : '0,00 zł'}</span></div>
 
-      <p class="checkout__fake">
-        To jest atrapa. Nic nie zostanie pobrane i nie ma tu gdzie wpisać danych karty —
-        żadne dane płatnicze nie są zbierane ani wysyłane.
-      </p>
+      ${tier.price ? `
+      <div class="checkout__card">
+        <label class="label" for="co-card-number">Numer karty</label>
+        <input class="field mono" id="co-card-number" inputmode="numeric" placeholder="4242 4242 4242 4242" maxlength="19" autocomplete="off">
+        <div class="checkout__card-row">
+          <div>
+            <label class="label" for="co-card-exp">Ważna do</label>
+            <input class="field mono" id="co-card-exp" inputmode="numeric" placeholder="MM/RR" maxlength="5" autocomplete="off">
+          </div>
+          <div>
+            <label class="label" for="co-card-cvv">CVV</label>
+            <input class="field mono" id="co-card-cvv" inputmode="numeric" placeholder="123" maxlength="3" autocomplete="off">
+          </div>
+        </div>
+      </div>` : ''}
 
       <div class="checkout__actions">
         <button class="btn btn--ghost" id="co-cancel">Anuluj</button>
         <button class="btn btn--primary" id="co-pay">${tier.price ? 'Zapłać' : 'Przełącz'}</button>
       </div>
+      <p class="checkout__fine">Atrapa — pola karty nigdzie nie są wysyłane.</p>
 
       <details class="promo">
         <summary class="label">Mam kod promocyjny</summary>

@@ -1,13 +1,11 @@
 /**
- * Onboarding — two questions, once, right after the first sign-in.
- *
- * It asks for a name because the chat screen greets you by it, and for what you
- * came for because that is the only thing worth personalising later. It cannot
- * be dismissed, because a half-made account is worse than one more tap.
+ * Onboarding — three steps, once, right after the first sign-in. A full screen
+ * like the gate, not an overlay: this is the first thing an account does, not
+ * an interruption to something else.
  */
 
 import * as store from '../store.js';
-import { overlay, closeOverlay, el, esc, gsap, reduced, toast } from '../ui.js';
+import { $, el, esc, gsap, reduced, toast } from '../ui.js';
 
 const INTERESTS = [
   { id: 'chat', label: 'Rozmowa', note: 'pytania, listy, gadanie' },
@@ -16,15 +14,18 @@ const INTERESTS = [
   { id: 'other', label: 'Coś innego', note: 'jeszcze nie wiem' },
 ];
 
-export function showOnboarding() {
+const TIERS_ORDER = ['plotka', 'lin', 'sum'];
+
+export function showOnboarding(root) {
   return new Promise((resolve) => {
     const chosen = new Set();
     let step = 1;
+    let pickedTier = 'plotka';
 
     const node = el(`
-      <div class="onboard">
-        <div class="onboard__bar"><span class="onboard__bar-fill" style="width:50%"></span></div>
-        <p class="label onboard__step">Krok <span id="ob-step">1</span> z 2</p>
+      <div class="onboard onboard--screen">
+        <div class="onboard__bar"><span class="onboard__bar-fill" style="width:33%"></span></div>
+        <p class="label onboard__step">Krok <span id="ob-step">1</span> z 3</p>
 
         <section class="onboard__panel" id="ob-1">
           <h2 class="title">Jak mam do ciebie mówić?</h2>
@@ -46,11 +47,30 @@ export function showOnboarding() {
           </div>
         </section>
 
+        <section class="onboard__panel" id="ob-3" hidden>
+          <h2 class="title">Który plan?</h2>
+          <p class="muted">Płotka wystarczy na start — zawsze można zmienić w Upgrade.</p>
+          <div class="onboard__tiers">
+            ${TIERS_ORDER.map((id) => {
+              const t = store.TIERS[id];
+              return `
+                <button type="button" class="onboard__tier" data-tier="${id}" aria-pressed="${id === 'plotka'}">
+                  <span class="onboard__tier-name">${esc(t.name)}</span>
+                  <span class="onboard__tier-price mono">${t.price ? `${t.price} zł/mies.` : 'za darmo'}</span>
+                  <span class="onboard__tier-blurb muted">${esc(t.blurb)}</span>
+                </button>`;
+            }).join('')}
+          </div>
+        </section>
+
         <footer class="onboard__foot">
           <button type="button" class="btn btn--ghost" id="ob-back" hidden>Wstecz</button>
           <button type="button" class="btn btn--primary" id="ob-next">Dalej</button>
         </footer>
       </div>`);
+
+    root.innerHTML = '';
+    root.appendChild(node);
 
     const q = (sel) => node.querySelector(sel);
     const nameInput = q('#ob-name');
@@ -61,15 +81,15 @@ export function showOnboarding() {
       const to = q(`#ob-${next}`);
       step = next;
       q('#ob-step').textContent = String(next);
-      q('.onboard__bar-fill').style.width = next === 1 ? '50%' : '100%';
+      q('.onboard__bar-fill').style.width = `${Math.round((next / 3) * 100)}%`;
       q('#ob-back').hidden = next === 1;
-      q('#ob-next').textContent = next === 2 ? 'Gotowe' : 'Dalej';
+      q('#ob-next').textContent = next === 3 ? 'Gotowe' : 'Dalej';
 
       if (reduced()) { from.hidden = true; to.hidden = false; return; }
       gsap.timeline()
-        .to(from, { opacity: 0, x: next > 1 ? -16 : 16, duration: 0.22, ease: 'power2.in' })
+        .to(from, { opacity: 0, x: next > step - 1 ? -16 : 16, duration: 0.22, ease: 'power2.in' })
         .set(from, { display: 'none' })
-        .set(to, { display: '', opacity: 0, x: next > 1 ? 16 : -16 })
+        .set(to, { display: '', opacity: 0, x: 16 })
         .call(() => { from.hidden = true; to.hidden = false; })
         .to(to, { opacity: 1, x: 0, duration: 0.32, ease: 'power3.out' });
     };
@@ -83,7 +103,17 @@ export function showOnboarding() {
       tile.classList.toggle('is-on', chosen.has(id));
     });
 
-    q('#ob-back').addEventListener('click', () => show(1));
+    q('.onboard__tiers').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-tier]');
+      if (!btn) return;
+      pickedTier = btn.dataset.tier;
+      q('.onboard__tiers').querySelectorAll('[data-tier]').forEach((b) => {
+        b.setAttribute('aria-pressed', String(b === btn));
+        b.classList.toggle('is-on', b === btn);
+      });
+    });
+
+    q('#ob-back').addEventListener('click', () => show(step - 1));
 
     q('#ob-next').addEventListener('click', async () => {
       if (step === 1) {
@@ -97,18 +127,18 @@ export function showOnboarding() {
         show(2);
         return;
       }
+      if (step === 2) { show(3); return; }
+
       const btn = q('#ob-next');
       btn.disabled = true;
       try {
         await store.completeOnboarding({ name: nameInput.value.trim(), interests: [...chosen] });
-        closeOverlay();
+        if (pickedTier !== 'plotka') await store.grantTier(pickedTier);
         resolve();
       } catch (e) {
         btn.disabled = false;
         toast(`Nie zapisałem: ${e.message}`, 'error', 6000);
       }
     });
-
-    overlay(node, { dismissible: false, label: 'Powitanie' });
   });
 }

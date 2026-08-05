@@ -51,6 +51,13 @@
   <p class="boot__text label">Narew Labs</p>
 </div>
 
+<!-- ============================================================== gate == -->
+<!-- Standalone screens: no sidebar, no chrome. Signed out and first-run
+     onboarding are not views among views — they are what the app shows
+     before it can honestly show anything else. -->
+<div id="gate-host" class="screen-host hidden"></div>
+<div id="onboard-host" class="screen-host hidden"></div>
+
 <!-- ================================================================= app == -->
 <div id="app" class="app hidden" data-sidebar="expanded">
 
@@ -98,18 +105,24 @@
           <span class="nav__label">Video Studio</span>
           <span class="nav__tag">wkrótce</span></a></li>
 
-        <li><a class="nav__item" href="/gzowoai/" data-nav="gzowoai">
-          <svg class="nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a4 4 0 0 1 4 4v1.2A5 5 0 0 1 18 12v3a6 6 0 0 1-12 0v-3a5 5 0 0 1 2-3.8V7a4 4 0 0 1 4-4Z"/><path d="M9.5 13h.01M14.5 13h.01"/></svg>
+        <li><a class="nav__item" href="https://gzowoai.gzowo.fun" data-nav="gzowoai">
+          <svg class="nav__icon nav__icon--sphere" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="4.6" r="1.1" fill="currentColor"/>
+            <circle cx="7.2" cy="7.4" r="1" fill="currentColor"/>
+            <circle cx="16.8" cy="7.4" r="1" fill="currentColor"/>
+            <circle cx="4.6" cy="12" r="1.1" fill="currentColor"/>
+            <circle cx="12" cy="12" r="1.3" fill="currentColor"/>
+            <circle cx="19.4" cy="12" r="1.1" fill="currentColor"/>
+            <circle cx="7.2" cy="16.6" r="1" fill="currentColor"/>
+            <circle cx="16.8" cy="16.6" r="1" fill="currentColor"/>
+            <circle cx="12" cy="19.4" r="1.1" fill="currentColor"/>
+          </svg>
           <span class="nav__label">Gzowo AI</span>
           <svg class="nav__go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></a></li>
 
         <li class="nav__gap" role="separator"></li>
 
-        <li><a class="nav__item" href="#/usage" data-nav="usage">
-          <svg class="nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>
-          <span class="nav__label">Usage</span></a></li>
-
-        <li><a class="nav__item" href="#/upgrade" data-nav="upgrade">
+        <li><a class="nav__item" href="#" data-nav="upgrade" id="nav-upgrade">
           <svg class="nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12c3-5 6.5-7 10-7 3 0 5 1.6 6 3-1 3.5-4.5 9-10 9-3.2 0-5.2-1.8-6-3.2z"/><path d="M4 12c-.7 2.6-.5 4.6.4 6M8.5 11.5h.01"/></svg>
           <span class="nav__label">Upgrade</span>
           <span id="nav-tier" class="nav__tier">Płotka</span></a></li>
@@ -125,6 +138,8 @@
          moment it is not. Everything else in the sidebar is quiet so this can
          be the one thing that moves. -->
     <div class="sidebar__foot">
+      <div id="sidebar-usage" class="sidebar-usage"></div>
+
       <a href="#/settings" id="bridge-state" class="bridge" data-state="unknown" title="Stan mostu do Maca">
         <svg class="bridge__river" viewBox="0 0 200 26" preserveAspectRatio="none" aria-hidden="true">
           <path class="bridge__bank" d="M0 13h200"/>
@@ -165,8 +180,6 @@
       <section class="view" id="view-chat" data-view="chat" hidden></section>
       <section class="view" id="view-image" data-view="image" hidden></section>
       <section class="view" id="view-video" data-view="video" hidden></section>
-      <section class="view" id="view-usage" data-view="usage" hidden></section>
-      <section class="view" id="view-upgrade" data-view="upgrade" hidden></section>
       <section class="view" id="view-settings" data-view="settings" hidden></section>
       <section class="view" id="view-account" data-view="account" hidden></section>
     </main>

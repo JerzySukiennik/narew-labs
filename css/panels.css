@@ -37,6 +37,30 @@
 /* ------------------------------------------------------------ onboarding -- */
 
 .onboard { display: grid; gap: var(--sp-4); padding: var(--sp-6); }
+.onboard--screen {
+  max-width: 30rem;
+  margin: 0 auto;
+  min-height: 100dvh;
+  align-content: center;
+  padding: var(--sp-6) var(--sp-5);
+}
+
+.onboard__tiers { display: grid; gap: var(--sp-3); }
+.onboard__tier {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 2px var(--sp-3);
+  padding: var(--sp-4);
+  text-align: left;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  transition: border-color var(--t-fast) var(--ease-out), background var(--t-fast) var(--ease-out);
+}
+.onboard__tier.is-on { border-color: var(--accent); background: var(--accent-soft); }
+.onboard__tier-name { font-weight: 600; }
+.onboard__tier-price { justify-self: end; font-size: var(--step--1); color: var(--text-muted); }
+.onboard__tier-blurb { grid-column: 1 / -1; font-size: var(--step--1); }
 
 .onboard__bar { height: 3px; border-radius: var(--r-pill); background: var(--surface-3); overflow: hidden; }
 .onboard__bar-fill {
@@ -182,7 +206,9 @@
 
 /* ----------------------------------------------------- promo / referral -- */
 
-.promo, .referral { margin-bottom: var(--sp-4); }
+.promo { margin-top: var(--sp-4); }
+.promo summary { cursor: pointer; }
+.referral { margin-bottom: var(--sp-4); }
 .promo__form { display: flex; gap: var(--sp-2); margin-top: var(--sp-3); }
 .promo__form .field { flex: 1; min-width: 0; font-size: max(1rem, var(--step-0)); }
 .promo__result { margin-top: var(--sp-3); font-size: var(--step--1); }

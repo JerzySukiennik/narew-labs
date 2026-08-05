@@ -39,6 +39,14 @@ export async function mount(root, ctx) {
   render(root);
 }
 
+/** Upgrade is a decision, not a place — it opens over whatever screen you were
+ *  already on and hands you back to it when you close it. */
+export function openAsOverlay(ctx) {
+  const node = el('<div class="upgrade-sheet"></div>');
+  overlay(node, { label: 'Plany' });
+  mount(node, ctx);
+}
+
 export function unmount() {
   handlers.forEach(([t, ty, fn]) => t.removeEventListener(ty, fn));
   handlers = [];
@@ -70,17 +78,6 @@ function render(root) {
         ${Object.values(store.TIERS).map((t) => card(t, current)).join('')}
       </div>
 
-      <section class="card promo" data-enter>
-        <h3 class="subtitle">Mam kod promocyjny</h3>
-        <p class="muted">Kod dostaje się od Jurka. Działa od razu, bez karty.</p>
-        <form class="promo__form" id="promo-form">
-          <label class="sr-only" for="promo-input">Kod promocyjny</label>
-          <input class="field" id="promo-input" placeholder="wpisz kod" autocomplete="off" spellcheck="false">
-          <button class="btn btn--primary" type="submit">Sprawdź</button>
-        </form>
-        <p class="promo__result" id="promo-result" hidden></p>
-      </section>
-
       <section class="card referral" data-enter>
         <div class="referral__body">
           <h3 class="subtitle">Poleć znajomemu</h3>
@@ -97,7 +94,6 @@ function render(root) {
     </div>`;
 
   $$('[data-buy]', root).forEach((btn) => bind(btn, 'click', () => checkout(btn.dataset.buy, root)));
-  bind($('#promo-form', root), 'submit', (e) => redeem(e, root));
   bind($('#ref-btn', root), 'click', showReferral);
 
   if (!reduced()) {
@@ -149,6 +145,16 @@ function checkout(tierId, root) {
         <button class="btn btn--ghost" id="co-cancel">Anuluj</button>
         <button class="btn btn--primary" id="co-pay">${tier.price ? 'Zapłać' : 'Przełącz'}</button>
       </div>
+
+      <details class="promo">
+        <summary class="label">Mam kod promocyjny</summary>
+        <form class="promo__form" id="promo-form">
+          <label class="sr-only" for="promo-input">Kod promocyjny</label>
+          <input class="field" id="promo-input" placeholder="wpisz kod" autocomplete="off" spellcheck="false">
+          <button class="btn" type="submit">Sprawdź</button>
+        </form>
+        <p class="promo__result" id="promo-result" hidden></p>
+      </details>
     </div>`);
 
   node.querySelector('#co-cancel').addEventListener('click', closeOverlay);
@@ -165,16 +171,17 @@ function checkout(tierId, root) {
       toast(`Nie udało się zmienić planu: ${err.message}`, 'error', 6000);
     }
   });
+  node.querySelector('#promo-form').addEventListener('submit', (e) => redeem(e, node, root));
 
   overlay(node, { label: 'Podsumowanie zamówienia' });
 }
 
 /* ---------------------------------------------------------------- promo -- */
 
-async function redeem(e, root) {
+async function redeem(e, node, root) {
   e.preventDefault();
-  const input = $('#promo-input', root);
-  const out = $('#promo-result', root);
+  const input = node.querySelector('#promo-input');
+  const out = node.querySelector('#promo-result');
   const btn = e.target.querySelector('button');
 
   btn.disabled = true;
@@ -190,7 +197,7 @@ async function redeem(e, root) {
   if (result.ok) {
     input.value = '';
     context?.refreshShell();
-    /* Re-rendering drops this node, so the message is repeated as a toast. */
+    closeOverlay();
     toast(result.message, 'ok');
     render(root);
   }

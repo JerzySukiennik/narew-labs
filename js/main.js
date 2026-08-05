@@ -36,8 +36,6 @@ const ROUTES = {
   chat: { title: 'Chat', load: () => import('./views/chat.js') },
   image: { title: 'Image Studio', load: () => import('./views/image.js') },
   video: { title: 'Video Studio', load: () => import('./views/video.js') },
-  usage: { title: 'Usage', load: () => import('./views/usage.js') },
-  upgrade: { title: 'Upgrade', load: () => import('./views/upgrade.js') },
   settings: { title: 'Settings', load: () => import('./views/settings.js') },
   account: { title: 'Konto', load: () => import('./views/account.js') },
 };
@@ -63,7 +61,8 @@ function go(name) {
 }
 
 async function render() {
-  const name = store.state.user ? routeName() : 'account';
+  if (!store.state.user) return;      // the gate screen owns signed-out entirely
+  const name = routeName();
   if (current?.name === name) return;
 
   if (current?.mod?.unmount) {
@@ -152,6 +151,17 @@ function initTheme() {
   });
 }
 
+/* ------------------------------------------------------------- upgrade -- */
+/* A decision, not a place: it opens over whatever screen you were on and
+   closing it returns you there, so it never needs a route of its own. */
+function initUpgrade() {
+  $('#nav-upgrade').addEventListener('click', async (e) => {
+    e.preventDefault();
+    const mod = await import('./views/upgrade.js');
+    mod.openAsOverlay(ctx);
+  });
+}
+
 /* ------------------------------------------------------------- presence -- */
 
 /**
@@ -190,31 +200,60 @@ export function refreshShell() {
   avatar.style.backgroundImage = user?.photoURL ? `url(${user.photoURL})` : '';
   avatar.classList.toggle('has-photo', Boolean(user?.photoURL));
 
-  $$('[data-nav]').forEach((a) => {
-    const locked =
-      (a.dataset.nav === 'image' && !store.can.image()) ||
-      (a.dataset.nav === 'video' && !store.can.video());
-    a.classList.toggle('is-locked', Boolean(locked));
-  });
+  /* Free plan does not see the doors it cannot open — Image and Video Studio
+     are simply absent from the list rather than shown locked. */
+  $('[data-nav="image"]').closest('li').hidden = !store.can.image();
+  $('[data-nav="video"]').closest('li').hidden = !store.can.video();
+
+  renderSidebarUsage();
 }
 
-/* -------------------------------------------------------- onboarding gate -- */
+/* ------------------------------------------------------------------ usage -- */
+/* Two thin bars in the sidebar footer, not a screen of their own — usage is
+   ambient information you glance at, not a destination. */
+function renderSidebarUsage() {
+  const host = $('#sidebar-usage');
+  if (!store.state.user) { host.innerHTML = ''; return; }
+  const windows = store.usageWindows();
+  host.innerHTML = windows.map((w) => {
+    const pct = Math.min(100, Math.round((w.used / w.scale) * 100));
+    const level = !w.capped ? 'free' : pct >= 90 ? 'high' : pct >= 60 ? 'mid' : 'low';
+    return `
+      <div class="sidebar-usage__row" data-level="${level}" title="${w.label}: ${w.used.toLocaleString('pl')} / ${w.capped ? w.scale.toLocaleString('pl') : 'bez limitu'}">
+        <span class="sidebar-usage__label">${w.label}</span>
+        <span class="sidebar-usage__track"><span class="sidebar-usage__fill" style="width:${pct}%"></span></span>
+      </div>`;
+  }).join('');
+}
+
+/* -------------------------------------------------------------- screens -- */
+/* Three mutually exclusive full-bleed states: signed out (gate), signed in but
+   unfinished (onboard), and the app itself. Exactly one is visible at a time. */
+
+function showScreen(which) {
+  $('#gate-host').classList.toggle('hidden', which !== 'gate');
+  $('#onboard-host').classList.toggle('hidden', which !== 'onboard');
+  $('#app').classList.toggle('hidden', which !== 'app');
+}
 
 async function maybeOnboard() {
-  if (!store.needsOnboarding()) return;
+  if (!store.needsOnboarding()) return false;
   const { showOnboarding } = await import('./views/onboarding.js');
-  await showOnboarding();
-  refreshShell();
+  showScreen('onboard');
+  await showOnboarding($('#onboard-host'));
+  return true;
 }
 
 /* ------------------------------------------------------------------ boot -- */
 
-function revealApp() {
+function fadeBoot() {
   const boot = $('#boot');
-  $('#app').classList.remove('hidden');
   if (reduced()) { boot.remove(); return; }
   gsap.to(boot, { opacity: 0, duration: 0.3, onComplete: () => boot.remove() });
+}
 
+function revealShell() {
+  if (reduced()) return;
   /* clearProps matters more than the animation does. Below 860 px the sidebar is
      a drawer held off-screen by a CSS transform, and an inline transform left
      behind by the tween outranks it — which parked the drawer open on every
@@ -225,11 +264,13 @@ function revealApp() {
 }
 
 let revealed = false;
+let appRevealed = false;
 
 async function boot() {
   initSidebar();
   initTheme();
   initBridge();
+  initUpgrade();
 
   /* A redirect sign-in lands back here; surfacing its error is the only way the
      user learns that, say, the provider was never enabled. */
@@ -253,22 +294,34 @@ async function boot() {
       store.resetLocalState();
     }
 
+    if (!revealed) { revealed = true; fadeBoot(); }
+
+    if (!user) {
+      const { mount } = await import('./views/login.js');
+      showScreen('gate');
+      mount($('#gate-host'));
+      return;
+    }
+
+    await maybeOnboard();
     refreshShell();
-    if (!revealed) { revealed = true; revealApp(); }
+    showScreen('app');
+    if (!appRevealed) { appRevealed = true; revealShell(); }
 
     current = null;                     // force a re-render across sign-in
-    if (user && !location.hash) location.hash = '#/chat';
+    if (!location.hash) location.hash = '#/chat';
     await render();
-    if (user) await maybeOnboard();
   });
 
   /* If Firebase never answers — offline, blocked, misconfigured — the app still
      has to become usable rather than sitting on a splash screen forever. */
-  setTimeout(() => {
+  setTimeout(async () => {
     if (!revealed) {
       revealed = true;
-      revealApp();
-      render();
+      fadeBoot();
+      const { mount } = await import('./views/login.js');
+      showScreen('gate');
+      mount($('#gate-host'));
       toast('Firebase nie odpowiada. Logowanie może nie działać.', 'error', 8000);
     }
   }, 6000);

@@ -26,6 +26,47 @@
   50% { opacity: 1; }
 }
 
+/* ------------------------------------------------------------- screens -- */
+/* Gate and onboarding: full-bleed, no chrome, exactly one visible at a time. */
+
+.screen-host {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  overflow-y: auto;
+  background: var(--bg);
+}
+.screen-host.hidden { display: none; }
+
+/* ---------------------------------------------------------- sidebar usage -- */
+
+.sidebar-usage { display: grid; gap: var(--sp-2); padding: var(--sp-1) var(--sp-2) var(--sp-2); }
+.sidebar-usage__row { display: grid; gap: 3px; }
+.sidebar-usage__label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.sidebar-usage__track {
+  display: block;
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.sidebar-usage__fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width var(--t-slow) var(--ease-settle);
+}
+.sidebar-usage__row[data-level='mid'] .sidebar-usage__fill { background: var(--sand); }
+.sidebar-usage__row[data-level='high'] .sidebar-usage__fill { background: var(--warn); }
+
+.app[data-sidebar='collapsed'] .sidebar-usage { display: none; }
+
 /* ----------------------------------------------------------------- layout -- */
 
 .app {

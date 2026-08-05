@@ -1,0 +1,37 @@
+{
+  "rules": {
+    "status": {
+      ".read": true,
+      "mac": { ".write": "auth.uid === 'MAC_UID_PLACEHOLDER'" }
+    },
+
+    "open": {
+      ".read": "auth.uid === 'MAC_UID_PLACEHOLDER'",
+
+      "$client": {
+        ".validate": "$client.length >= 20",
+
+        "jobs": {
+          ".read": "auth.uid === 'MAC_UID_PLACEHOLDER'",
+          ".write": true,
+          "$job": {
+            "model": { ".validate": "newData.val() == 'g-micro' || newData.val() == 'g-mini' || newData.val() == 'g-images'" },
+            "text": { ".validate": "newData.isString() && newData.val().length <= 2000" },
+            "image": { ".validate": "newData.isString() && newData.val().length <= 400000" },
+            "at": { ".validate": "newData.isNumber()" },
+            "history": { ".validate": "true" },
+            "cancel": { ".validate": "newData.isBoolean()" },
+            "$other": { ".validate": "false" }
+          }
+        },
+
+        "out": {
+          ".read": true,
+          ".write": "auth.uid === 'MAC_UID_PLACEHOLDER'"
+        },
+
+        "$other": { ".validate": "false" }
+      }
+    }
+  }
+}

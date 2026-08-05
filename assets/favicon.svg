@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <title>Narew Labs</title>
+  <!-- Same mark as assets/mark.svg. A favicon cannot inherit currentColor, so
+       the two themes are spelled out here instead. -->
+  <style>
+    .plate { fill: #0c0c0b; }
+    .ink { stroke: #f2f1ec; }
+    @media (prefers-color-scheme: light) {
+      .plate { fill: #fbfaf7; }
+      .ink { stroke: #1a1a17; }
+    }
+  </style>
+  <rect class="plate" width="32" height="32" rx="7" />
+  <g class="ink" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(16 16) scale(0.82) translate(-16 -16)">
+    <path d="M7 26V6" />
+    <path d="M25 26V6" />
+    <path d="M7 6c4.2 3.6 3.4 7.8 6.6 9.4 3.2 1.6 5-1 7 2.2 1.5 2.4 2.3 5.2 4.4 8.4" />
+  </g>
+</svg>

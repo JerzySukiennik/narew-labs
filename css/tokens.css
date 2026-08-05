@@ -1,0 +1,139 @@
+/*
+ * Design tokens.
+ *
+ * The palette is a river, not a brand deck. Narew is a lowland river: slow,
+ * braided, the colour of tea over sand. Five names, all of them things you can
+ * point at from the bank at Gzowo — and they are the *only* colour in the
+ * product. Everything structural is warm black and paper white, so an accent
+ * always means something: this is active, this is how full you are, this is
+ * what you paid for.
+ *
+ * Warm blacks on purpose. A blue-black reads as hardware; this app is supposed
+ * to feel like a workshop, not a HUD.
+ */
+
+:root {
+  /* ---------------------------------------------------------- the river -- */
+  --nurt: #3e7c8b;        /* the current — deep water teal */
+  --sitowie: #8c9b5a;     /* reeds */
+  --mielizna: #d8c39a;    /* the sandbar */
+  --bursztyn: #e0913a;    /* amber, the last twenty minutes of light */
+  --wierzba: #a8b8ae;     /* willow leaf, seen from underneath */
+
+  /* --------------------------------------------------------- typography -- */
+  --font-display: 'Bricolage Grotesque', 'Instrument Sans', system-ui, sans-serif;
+  --font-body: 'Instrument Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, 'SF Mono', monospace;
+
+  /* Tracking is size-specific: large type reads too loose as it grows, small
+     type too tight. One letter-spacing for everything is wrong somewhere. */
+  --track-display: -0.03em;
+  --track-title: -0.015em;
+  --track-body: 0;
+  --track-label: 0.06em;
+
+  --step--1: clamp(0.78rem, 0.76rem + 0.1vw, 0.83rem);
+  --step-0: clamp(0.94rem, 0.9rem + 0.2vw, 1rem);
+  --step-1: clamp(1.1rem, 1.02rem + 0.4vw, 1.25rem);
+  --step-2: clamp(1.35rem, 1.2rem + 0.7vw, 1.65rem);
+  --step-3: clamp(1.9rem, 1.5rem + 1.9vw, 3rem);
+
+  /* ------------------------------------------------------------- space -- */
+  /* In rem, so a larger system text size scales the layout with the text
+     instead of breaking it. */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-7: 3rem;
+  --sp-8: 4rem;
+
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-pill: 999px;
+
+  --sidebar-w: 268px;
+  --sidebar-w-collapsed: 68px;
+  --reading: 46rem;
+
+  /* Two springs, following Apple's damping/response pair. Critically damped is
+     the default; the bouncy one is only for motion the user threw. */
+  --ease-settle: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --t-fast: 140ms;
+  --t-base: 240ms;
+  --t-slow: 420ms;
+
+  --z-sidebar: 30;
+  --z-scrim: 40;
+  --z-sheet: 50;
+  --z-toast: 60;
+}
+
+/* ------------------------------------------------------------- dark (default) -- */
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #0c0c0b;
+  --surface: #131312;
+  --surface-2: #1b1b19;
+  --surface-3: #232320;
+  --line: #2a2a27;
+  --line-strong: #3a3a35;
+  --text: #f2f1ec;
+  --text-muted: #9b9a93;
+  --text-faint: #8f8e84;
+
+  /* Accents lifted for legibility against a near-black field. The hue is the
+     same river; only the value changes. */
+  --accent: #6fb3c4;
+  --accent-soft: rgba(111, 179, 196, 0.14);
+  --accent-line: rgba(111, 179, 196, 0.32);
+  --ok: #9db55f;
+  --warn: #e0913a;
+  --sand: #d8c39a;
+
+  --glass: rgba(19, 19, 18, 0.72);
+  --scrim: rgba(6, 6, 5, 0.6);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+/* ------------------------------------------------------------------- light -- */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #fbfaf7;
+  --surface: #ffffff;
+  --surface-2: #f2f0ea;
+  --surface-3: #e9e6dd;
+  --line: #e2dfd6;
+  --line-strong: #cfcbbe;
+  --text: #1a1a17;
+  --text-muted: #6b6a62;
+  --text-faint: #64635c;
+
+  --accent: #2f6b7a;
+  --accent-soft: rgba(47, 107, 122, 0.1);
+  --accent-line: rgba(47, 107, 122, 0.28);
+  --ok: #6f8438;
+  --warn: #b96f1c;
+  --sand: #b99a5f;
+
+  --glass: rgba(255, 255, 255, 0.74);
+  --scrim: rgba(26, 26, 23, 0.32);
+  --shadow-sm: 0 1px 2px rgba(26, 26, 23, 0.08);
+  --shadow-md: 0 8px 24px rgba(26, 26, 23, 0.1);
+  --shadow-lg: 0 24px 60px rgba(26, 26, 23, 0.14);
+}
+
+/* Translucent chrome collapses into solid surfaces when the reader has asked
+   for less transparency — legibility wins over the material. */
+@media (prefers-reduced-transparency: reduce) {
+  :root { --glass: var(--surface); }
+}

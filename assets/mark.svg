@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Narew Labs">
+  <title>Narew Labs</title>
+  <!--
+    An N whose diagonal is a river.
+
+    Two straight stems hold the letter upright; the stroke between them leaves
+    the top-left, bends twice the way a lowland river bends, and arrives at the
+    bottom-right. Nothing here is decorative: the meander is the only part that
+    moves, and it is the thing the whole product is named after.
+
+    Geometry (do not eyeball these):
+      stems      x = 7 and x = 25, from y = 6 to y = 26
+      stroke     3.4, round caps and joins
+      meander    (7,6) -> (25,26), two symmetric bends of 4 units either side
+                 of the straight diagonal, so it reads as an N at 16 px and as
+                 a river at 200 px
+  -->
+  <g fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 26V6" />
+    <path d="M25 26V6" />
+    <path d="M7 6c4.2 3.6 3.4 7.8 6.6 9.4 3.2 1.6 5-1 7 2.2 1.5 2.4 2.3 5.2 4.4 8.4" />
+  </g>
+</svg>

@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="pl" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Narew Labs</title>
+<meta name="description" content="Modele AI trenowane od zera w Gzowie. Chat, Image Studio i reszta w jednym miejscu.">
+<meta name="theme-color" content="#0c0c0b" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fbfaf7" media="(prefers-color-scheme: light)">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/favicon.svg">
+
+<script>
+  /* Theme before first paint. Reading it in a module would run after the first
+     frame and flash the wrong background at every load. Dark is the default;
+     the stored choice wins over the system. */
+  (function () {
+    try {
+      var saved = localStorage.getItem('narew.theme');
+      document.documentElement.dataset.theme =
+        saved === 'light' || saved === 'dark' ? saved : 'dark';
+    } catch (e) { /* private mode: the default in the markup stands */ }
+  })();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..700&family=Instrument+Sans:wght@400..600&family=DM+Mono:wght@400;500&display=swap">
+
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/shell.css">
+<link rel="stylesheet" href="css/chat.css">
+<link rel="stylesheet" href="css/studio.css">
+<link rel="stylesheet" href="css/panels.css">
+</head>
+
+<body>
+
+<!-- ============================================================ boot gate == -->
+<!-- Shown until Firebase answers whether anyone is signed in. Without it the
+     app would flash the signed-out screen at every reload of a signed-in user. -->
+<div id="boot" class="boot">
+  <div class="boot__mark" aria-hidden="true">
+    <svg viewBox="0 0 32 32" width="34" height="34" fill="none" stroke="currentColor"
+         stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 26V6"/><path d="M25 26V6"/>
+      <path d="M7 6c4.2 3.6 3.4 7.8 6.6 9.4 3.2 1.6 5-1 7 2.2 1.5 2.4 2.3 5.2 4.4 8.4"/>
+    </svg>
+  </div>
+  <p class="boot__text label">Narew Labs</p>
+</div>
+
+<!-- ================================================================= app == -->
+<div id="app" class="app hidden" data-sidebar="expanded">
+
+  <!-- ------------------------------------------------------------ sidebar -- -->
+  <aside id="sidebar" class="sidebar" aria-label="Nawigacja">
+
+    <div class="sidebar__head">
+      <a class="brand" href="#/chat" aria-label="Narew Labs — start">
+        <span class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="26" height="26" fill="none" stroke="currentColor"
+               stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 26V6"/><path d="M25 26V6"/>
+            <path d="M7 6c4.2 3.6 3.4 7.8 6.6 9.4 3.2 1.6 5-1 7 2.2 1.5 2.4 2.3 5.2 4.4 8.4"/>
+          </svg>
+        </span>
+        <span class="brand__word">Narew<span class="brand__word-dim"> Labs</span></span>
+      </a>
+      <button id="sidebar-toggle" class="icon-btn sidebar__toggle" aria-label="Zwiń panel"
+              aria-expanded="true" aria-controls="sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9.5 4v16"/>
+        </svg>
+      </button>
+    </div>
+
+    <button id="new-chat" class="new-chat">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      <span class="new-chat__label">Nowa rozmowa</span>
+    </button>
+
+    <nav class="nav" aria-label="Sekcje">
+      <ul id="nav-list">
+        <li><a class="nav__item" href="#/chat" data-nav="chat">
+          <svg class="nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/></svg>
+          <span class="nav__label">Chat</span></a></li>
+
+        <li><a class="nav__item" href="#/image" data-nav="image">
+          <svg class="nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m3.5 17 4.8-4.5a2 2 0 0 1 2.7 0L20.5 21"/></svg>
+          <span class="nav__label">Image Studio</span></a></li>
+
+        <li><a class="nav__item" href="#/video" data-nav="video">
+          <svg class="nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5.5" width="13" height="13" rx="3"/><path d="m15.5 10.5 6-3.5v10l-6-3.5z"/></svg>
+          <span class="nav__label">Video Studio</span>
+          <span class="nav__tag">wkrótce</span></a></li>
+
+        <li><a class="nav__item" href="/gzowoai/" data-nav="gzowoai">
+          <svg class="nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a4 4 0 0 1 4 4v1.2A5 5 0 0 1 18 12v3a6 6 0 0 1-12 0v-3a5 5 0 0 1 2-3.8V7a4 4 0 0 1 4-4Z"/><path d="M9.5 13h.01M14.5 13h.01"/></svg>
+          <span class="nav__label">Gzowo AI</span>
+          <svg class="nav__go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></a></li>
+
+        <li class="nav__gap" role="separator"></li>
+
+        <li><a class="nav__item" href="#/usage" data-nav="usage">
+          <svg class="nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>
+          <span class="nav__label">Usage</span></a></li>
+
+        <li><a class="nav__item" href="#/upgrade" data-nav="upgrade">
+          <svg class="nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12c3-5 6.5-7 10-7 3 0 5 1.6 6 3-1 3.5-4.5 9-10 9-3.2 0-5.2-1.8-6-3.2z"/><path d="M4 12c-.7 2.6-.5 4.6.4 6M8.5 11.5h.01"/></svg>
+          <span class="nav__label">Upgrade</span>
+          <span id="nav-tier" class="nav__tier">Płotka</span></a></li>
+
+        <li><a class="nav__item" href="#/settings" data-nav="settings">
+          <svg class="nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.5 12a7.5 7.5 0 0 0-.1-1.2l2-1.5-2-3.5-2.4 1a7.6 7.6 0 0 0-2-1.2L14.6 2h-4l-.4 2.6c-.7.3-1.4.7-2 1.2l-2.4-1-2 3.5 2 1.5a7.6 7.6 0 0 0 0 2.4l-2 1.5 2 3.5 2.4-1c.6.5 1.3.9 2 1.2l.4 2.6h4l.4-2.6c.7-.3 1.4-.7 2-1.2l2.4 1 2-3.5-2-1.5c.06-.4.1-.8.1-1.2Z"/></svg>
+          <span class="nav__label">Settings</span></a></li>
+      </ul>
+    </nav>
+
+    <!-- The signature element. It is the presence indicator, and it is the
+         river: it flows while the Mac at home is awake and goes still the
+         moment it is not. Everything else in the sidebar is quiet so this can
+         be the one thing that moves. -->
+    <div class="sidebar__foot">
+      <a href="#/settings" id="bridge-state" class="bridge" data-state="unknown" title="Stan mostu do Maca">
+        <svg class="bridge__river" viewBox="0 0 200 26" preserveAspectRatio="none" aria-hidden="true">
+          <path class="bridge__bank" d="M0 13h200"/>
+          <path class="bridge__flow" d="M-200 13c14-9 26 9 40 0s26-9 40 0 26 9 40 0 26-9 40 0 26 9 40 0 26-9 40 0 26 9 40 0 26-9 40 0 26 9 40 0 26-9 40 0"/>
+        </svg>
+        <span class="bridge__dot" aria-hidden="true"></span>
+        <span id="bridge-text" class="bridge__text">Sprawdzam most…</span>
+      </a>
+
+      <a href="#/account" id="user-chip" class="user-chip" data-nav="account">
+        <span id="user-avatar" class="user-chip__avatar" aria-hidden="true">?</span>
+        <span class="user-chip__body">
+          <span id="user-name" class="user-chip__name">Gość</span>
+          <span id="user-mail" class="user-chip__mail muted">niezalogowany</span>
+        </span>
+      </a>
+    </div>
+  </aside>
+
+  <div id="sidebar-scrim" class="scrim" hidden></div>
+
+  <!-- --------------------------------------------------------------- main -- -->
+  <div class="main">
+    <header class="topbar">
+      <button id="sidebar-open" class="icon-btn topbar__menu" aria-label="Pokaż panel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <h1 id="view-title" class="topbar__title subtitle">Chat</h1>
+      <div class="topbar__right">
+        <button id="theme-toggle" class="icon-btn" aria-label="Przełącz motyw">
+          <svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4"/></svg>
+          <svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main id="view-host" class="view-host">
+      <section class="view" id="view-chat" data-view="chat" hidden></section>
+      <section class="view" id="view-image" data-view="image" hidden></section>
+      <section class="view" id="view-video" data-view="video" hidden></section>
+      <section class="view" id="view-usage" data-view="usage" hidden></section>
+      <section class="view" id="view-upgrade" data-view="upgrade" hidden></section>
+      <section class="view" id="view-settings" data-view="settings" hidden></section>
+      <section class="view" id="view-account" data-view="account" hidden></section>
+    </main>
+  </div>
+</div>
+
+<!-- ============================================================== overlays == -->
+<div id="overlay-host" class="overlay-host" hidden></div>
+<div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+
+<noscript>
+  <p style="padding:2rem;font-family:system-ui">Narew Labs potrzebuje JavaScriptu — cała aplikacja to jedna strona.</p>
+</noscript>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

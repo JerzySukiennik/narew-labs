@@ -1,0 +1,300 @@
+/* Account gate, onboarding, usage, tiers, settings. */
+
+/* ------------------------------------------------------------------ gate -- */
+
+.gate {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  max-width: 34rem;
+  padding-top: var(--sp-8);
+}
+.gate__mark { color: var(--accent); margin-bottom: var(--sp-5); }
+.gate__title { max-width: 14ch; }
+.gate__lede { margin-top: var(--sp-4); max-width: 44ch; }
+.gate__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-6);
+}
+.gate__fine { margin-top: var(--sp-6); font-size: var(--step--1); max-width: 40ch; }
+.gate__error {
+  margin-top: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--line));
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  font-size: var(--step--1);
+}
+.gate__error[hidden] { display: none; }
+
+.account__list { display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
+.account__list dd { margin: 0; font-size: var(--step-0); }
+.account__actions { display: flex; gap: var(--sp-3); margin-top: var(--sp-5); flex-wrap: wrap; }
+
+/* ------------------------------------------------------------ onboarding -- */
+
+.onboard { display: grid; gap: var(--sp-4); padding: var(--sp-6); }
+
+.onboard__bar { height: 3px; border-radius: var(--r-pill); background: var(--surface-3); overflow: hidden; }
+.onboard__bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width var(--t-base) var(--ease-settle);
+}
+.onboard__step { margin-top: calc(var(--sp-2) * -1); }
+
+.onboard__panel { display: grid; gap: var(--sp-3); }
+.onboard__panel[hidden] { display: none; }
+.onboard__input { font-size: max(1rem, var(--step-0)); }
+.onboard__error {
+  font-size: var(--step--1);
+  color: var(--warn);
+}
+.onboard__error[hidden] { display: none; }
+
+.onboard__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
+.onboard__tile {
+  display: grid;
+  gap: 2px;
+  padding: var(--sp-4);
+  text-align: left;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  transition: border-color var(--t-fast) var(--ease-out),
+              background var(--t-fast) var(--ease-out),
+              transform var(--t-fast) var(--ease-out);
+}
+.onboard__tile:active { transform: scale(0.98); }
+.onboard__tile.is-on { border-color: var(--accent); background: var(--accent-soft); }
+.onboard__tile-label { font-weight: 600; }
+.onboard__tile-note { font-size: var(--step--1); }
+
+.onboard__foot { display: flex; justify-content: flex-end; gap: var(--sp-3); margin-top: var(--sp-2); }
+.onboard__foot .btn:first-child { margin-right: auto; }
+
+/* ----------------------------------------------------------------- usage -- */
+
+.bars { display: grid; gap: var(--sp-6); }
+
+.bar { display: grid; gap: var(--sp-2); }
+.bar__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); }
+.bar__value { font-size: var(--step--1); color: var(--text-muted); }
+
+.bar__track {
+  height: 10px;
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  transition: width var(--t-slow) var(--ease-settle);
+}
+.bar[data-level='low'] .bar__fill { background: var(--ok); }
+.bar[data-level='mid'] .bar__fill { background: var(--sand); }
+.bar[data-level='high'] .bar__fill { background: var(--warn); }
+.bar__note { font-size: var(--step--1); }
+
+.note {
+  margin: var(--sp-6) 0;
+  padding: var(--sp-4);
+  border-left: 2px solid var(--accent-line);
+  background: var(--surface);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  font-size: var(--step--1);
+  color: var(--text-muted);
+}
+
+.recent__list { display: grid; gap: var(--sp-2); margin-top: var(--sp-3); }
+.recent__list li {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr auto;
+  gap: var(--sp-3);
+  align-items: baseline;
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--step--1);
+}
+.recent__when { text-align: right; }
+
+/* ----------------------------------------------------------------- tiers -- */
+
+.tiers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-6);
+}
+
+.tier {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-2);
+  padding: var(--sp-5);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.tier.is-current { border-color: var(--accent); background: var(--accent-soft); }
+
+/* The fish is the one flourish on this screen; the rest stays plain. */
+.tier__fish { color: var(--accent); margin-bottom: var(--sp-2); }
+.tier__fish .fish { width: 100%; max-width: 8.5rem; height: auto; }
+.tier[data-tier='lin'] .tier__fish { color: var(--sitowie); }
+.tier[data-tier='sum'] .tier__fish { color: var(--bursztyn); }
+
+.tier__name {
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  font-weight: 600;
+  letter-spacing: var(--track-title);
+}
+.tier__blurb { font-size: var(--step--1); }
+.tier__price { font-size: var(--step-1); margin: var(--sp-2) 0; }
+.tier__per { font-size: 0.72rem; color: var(--text-faint); }
+
+.tier__perks { display: grid; gap: var(--sp-2); margin: var(--sp-2) 0 var(--sp-4); font-size: var(--step--1); }
+.tier__perks li { padding-left: 1.1rem; position: relative; color: var(--text-muted); }
+.tier__perks li::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0.62em;
+  width: 6px; height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--accent-line);
+}
+
+.tier__badge {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* ----------------------------------------------------- promo / referral -- */
+
+.promo, .referral { margin-bottom: var(--sp-4); }
+.promo__form { display: flex; gap: var(--sp-2); margin-top: var(--sp-3); }
+.promo__form .field { flex: 1; min-width: 0; font-size: max(1rem, var(--step-0)); }
+.promo__result { margin-top: var(--sp-3); font-size: var(--step--1); }
+.promo__result[hidden] { display: none; }
+.promo__result[data-state='ok'] { color: var(--ok); }
+.promo__result[data-state='error'] { color: var(--warn); }
+
+.referral {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+}
+.referral__body { min-width: 16rem; flex: 1; }
+.referral__link {
+  margin: var(--sp-4) 0;
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-size: var(--step--1);
+  word-break: break-all;
+}
+
+/* -------------------------------------------------- checkout / confirm -- */
+
+.checkout, .confirm { display: grid; gap: var(--sp-3); padding: var(--sp-6); }
+
+.checkout__row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--step--1);
+}
+.checkout__row--total { border-bottom: 0; font-size: var(--step-1); font-weight: 600; }
+
+.checkout__fake {
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  border: 1px dashed var(--line-strong);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: var(--step--1);
+}
+
+.checkout__actions { display: flex; justify-content: flex-end; gap: var(--sp-3); margin-top: var(--sp-2); }
+.checkout__actions .btn:first-child { margin-right: auto; }
+
+.confirm__label { font-size: var(--step--1); color: var(--text-muted); }
+.confirm__error { font-size: var(--step--1); color: var(--warn); }
+.confirm__error[hidden] { display: none; }
+
+/* -------------------------------------------------------------- settings -- */
+
+.setting { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); flex-wrap: wrap; margin-bottom: var(--sp-4); }
+.setting--stack { display: grid; }
+.setting__head { min-width: 14rem; flex: 1; }
+.setting__head .muted { font-size: var(--step--1); }
+.setting__actions { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
+
+.setting__danger { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); }
+.setting__danger:hover { background: color-mix(in srgb, var(--warn) 12%, transparent); }
+
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+}
+.segmented__opt {
+  min-height: 36px;
+  padding: 0 var(--sp-4);
+  border-radius: var(--r-pill);
+  color: var(--text-muted);
+  font-size: var(--step--1);
+  transition: background var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
+}
+.segmented__opt.is-on { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
+
+.history { display: grid; gap: 2px; margin-top: var(--sp-3); }
+.history__row { display: flex; align-items: center; gap: var(--sp-2); }
+.history__open {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  text-align: left;
+  transition: background var(--t-fast) var(--ease-out);
+}
+.history__open:hover { background: var(--surface-2); }
+.history__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.history__meta { font-size: 0.72rem; }
+.history__del { flex: none; }
+.history__del svg { width: 17px; height: 17px; }
+
+@media (max-width: 860px) {
+  .onboard, .checkout, .confirm { padding: var(--sp-5); }
+  .onboard__grid { grid-template-columns: minmax(0, 1fr); }
+  .gate { padding-top: var(--sp-6); }
+  .recent__list li { grid-template-columns: 4.5rem 1fr; }
+  .recent__when { grid-column: 1 / -1; text-align: left; }
+}
+
+/* A guest account is one cleared cache away from gone, so its card is the only
+   one in Settings that raises its voice. */
+.setting--warn {
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--line));
+  background: color-mix(in srgb, var(--warn) 7%, transparent);
+}

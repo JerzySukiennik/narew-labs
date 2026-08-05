@@ -1,0 +1,427 @@
+/*
+ * The frame: boot gate, sidebar, topbar, overlays, toasts.
+ *
+ * The sidebar is the only permanently visible surface, so it carries the
+ * identity: the mark, the river, and nothing else that moves.
+ */
+
+/* ------------------------------------------------------------- boot gate -- */
+
+.boot {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--sp-4);
+  background: var(--bg);
+  color: var(--text);
+  z-index: 100;
+}
+.boot__mark { color: var(--accent); animation: boot-breathe 2.4s var(--ease-settle) infinite; }
+.boot__text { letter-spacing: 0.22em; }
+
+@keyframes boot-breathe {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+/* ----------------------------------------------------------------- layout -- */
+
+.app {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  height: 100dvh;
+  transition: grid-template-columns var(--t-base) var(--ease-settle);
+}
+.app[data-sidebar='collapsed'] { grid-template-columns: var(--sidebar-w-collapsed) minmax(0, 1fr); }
+
+.main {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  background: var(--bg);
+}
+
+.view-host { position: relative; min-height: 0; overflow: hidden; }
+.view { height: 100%; overflow-y: auto; overscroll-behavior: contain; }
+.view[hidden] { display: none; }
+
+/* ---------------------------------------------------------------- sidebar -- */
+
+.sidebar {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: var(--sp-2);
+  min-width: 0;
+  padding: var(--sp-3) var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  z-index: var(--z-sidebar);
+}
+
+.sidebar__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  min-height: 44px;
+  padding-left: var(--sp-2);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-width: 0;
+  color: var(--text);
+  text-decoration: none;
+}
+.brand__mark { color: var(--accent); flex: none; }
+.brand__word {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: var(--track-title);
+  white-space: nowrap;
+}
+.brand__word-dim { color: var(--text-muted); font-weight: 400; }
+
+.new-chat {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: 44px;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 500;
+  transition: background var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out);
+}
+.new-chat:hover { background: var(--surface-3); }
+.new-chat:active { transform: scale(0.98); }
+.new-chat svg { flex: none; margin-left: 2px; }
+
+.nav { overflow-y: auto; overflow-x: hidden; margin-top: var(--sp-2); }
+.nav__gap { height: 1px; margin: var(--sp-3) var(--sp-2); background: var(--line); }
+
+.nav__item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 42px;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-md);
+  color: var(--text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
+}
+.nav__item:hover { background: var(--surface-2); color: var(--text); }
+.nav__item.is-active { background: var(--accent-soft); color: var(--text); }
+
+/* The active marker is a slice of river, not a generic bar. */
+.nav__item.is-active::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--sp-3) * -1 + 3px);
+  top: 50%;
+  width: 3px;
+  height: 18px;
+  margin-top: -9px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+}
+
+.nav__icon { flex: none; width: 20px; height: 20px; }
+.nav__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+.nav__tag, .nav__tier {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--text-faint);
+  border: 1px solid var(--line);
+}
+.nav__tier[data-tier='lin'] { color: var(--sitowie); border-color: color-mix(in srgb, var(--sitowie) 40%, transparent); }
+.nav__tier[data-tier='sum'] { color: var(--bursztyn); border-color: color-mix(in srgb, var(--bursztyn) 45%, transparent); }
+
+.nav__go { flex: none; width: 15px; height: 15px; color: var(--text-faint); }
+.nav__item.is-locked .nav__label { opacity: 0.72; }
+
+/* --------------------------------------------------------- sidebar footer -- */
+
+.sidebar__foot { display: grid; gap: var(--sp-2); }
+
+/*
+ * The bridge state — the signature element.
+ *
+ * A dot would say the same thing, but this app is named after a river and its
+ * one strange, honest fact is that the machine answering you is a laptop in a
+ * house that sometimes has its lid shut. So the state of that link is drawn as
+ * water: moving when it is open, flat when it is not.
+ */
+.bridge {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 44px;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  text-decoration: none;
+  overflow: hidden;
+}
+
+.bridge__river {
+  position: absolute;
+  inset: auto 0 0;
+  width: 100%;
+  height: 26px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+.bridge__bank { stroke: var(--line-strong); stroke-width: 1; fill: none; }
+.bridge__flow { stroke: var(--accent); stroke-width: 1.6; fill: none; opacity: 0; }
+
+.bridge[data-state='online'] .bridge__flow {
+  opacity: 0.85;
+  animation: river 9s linear infinite;
+}
+.bridge[data-state='online'] { color: var(--text); }
+
+@keyframes river {
+  from { transform: translateX(0); }
+  to { transform: translateX(200px); }
+}
+/* A slow looping background is exactly the motion vestibular users cannot
+   tolerate, so the river holds still and only the dot carries the state. */
+@media (prefers-reduced-motion: reduce) {
+  .bridge[data-state='online'] .bridge__flow { animation: none; }
+}
+
+.bridge__dot {
+  flex: none;
+  width: 8px; height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--text-faint);
+  box-shadow: 0 0 0 0 transparent;
+}
+.bridge[data-state='online'] .bridge__dot {
+  background: var(--ok);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 20%, transparent);
+}
+.bridge[data-state='offline'] .bridge__dot { background: var(--text-faint); }
+
+.bridge__text {
+  position: relative;
+  font-size: var(--step--1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 48px;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-md);
+  color: var(--text);
+  text-decoration: none;
+  transition: background var(--t-fast) var(--ease-out);
+}
+.user-chip:hover { background: var(--surface-2); }
+
+.user-chip__avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px; height: 30px;
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent-line);
+  font-size: 0.8rem;
+  font-weight: 600;
+  background-size: cover;
+  background-position: center;
+}
+.user-chip__avatar.has-photo { color: transparent; border-color: var(--line); }
+
+.user-chip__body { display: grid; min-width: 0; line-height: 1.25; }
+.user-chip__name { font-size: var(--step--1); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-chip__mail { font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* -------------------------------------------------------------- collapsed -- */
+
+.app[data-sidebar='collapsed'] .sidebar { padding-left: var(--sp-2); padding-right: var(--sp-2); }
+.app[data-sidebar='collapsed'] .brand__word,
+.app[data-sidebar='collapsed'] .new-chat__label,
+.app[data-sidebar='collapsed'] .nav__label,
+.app[data-sidebar='collapsed'] .nav__tag,
+.app[data-sidebar='collapsed'] .nav__tier,
+.app[data-sidebar='collapsed'] .nav__go,
+.app[data-sidebar='collapsed'] .bridge__text,
+.app[data-sidebar='collapsed'] .user-chip__body { display: none; }
+
+/* The head stacks instead of hiding the toggle: a control that collapses the
+   sidebar has to still exist afterwards, or the only way back is clearing
+   localStorage. The topbar button expands it too — see main.js. */
+.app[data-sidebar='collapsed'] .sidebar__head {
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--sp-1);
+  padding-left: 0;
+}
+.app[data-sidebar='collapsed'] .brand { justify-content: center; }
+.app[data-sidebar='collapsed'] .new-chat,
+.app[data-sidebar='collapsed'] .nav__item,
+.app[data-sidebar='collapsed'] .bridge,
+.app[data-sidebar='collapsed'] .user-chip { justify-content: center; padding: 0; }
+.app[data-sidebar='collapsed'] .bridge__river { opacity: 0.35; }
+
+/* The toggle moves into the topbar when there is no room for it in the head. */
+.app[data-sidebar='collapsed'] .topbar__menu { display: inline-grid; }
+
+/* ----------------------------------------------------------------- topbar -- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 56px;
+  padding: 0 var(--sp-4);
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-bottom: 1px solid var(--line);
+  z-index: 10;
+}
+.topbar__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar__right { display: flex; align-items: center; gap: var(--sp-1); }
+.topbar__menu { display: none; }
+
+:root[data-theme='dark'] .theme-sun { display: none; }
+:root[data-theme='light'] .theme-moon { display: none; }
+
+/* ----------------------------------------------------------------- scrim -- */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  z-index: calc(var(--z-sidebar) - 1);
+}
+.scrim[hidden] { display: none; }
+
+/* --------------------------------------------------------------- overlay -- */
+
+.overlay-host { position: fixed; inset: 0; z-index: var(--z-sheet); }
+.overlay-host[hidden] { display: none; }
+
+.overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: var(--sp-4); }
+.overlay__scrim { position: absolute; inset: 0; background: var(--scrim); backdrop-filter: blur(3px); }
+.overlay__panel {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: min(86dvh, 760px);
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ---------------------------------------------------------------- toasts -- */
+
+.toasts {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--sp-5) + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: grid;
+  gap: var(--sp-2);
+  width: min(440px, calc(100vw - 2rem));
+  z-index: var(--z-toast);
+  pointer-events: none;
+}
+.toast {
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--surface-3);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-md);
+  font-size: var(--step--1);
+}
+.toast--error { border-color: color-mix(in srgb, var(--warn) 55%, var(--line-strong)); }
+.toast--ok { border-color: color-mix(in srgb, var(--ok) 55%, var(--line-strong)); }
+
+/* ------------------------------------------------------------ page frame -- */
+/* Shared by every view so seven screens read as one product. */
+
+.page {
+  max-width: var(--reading);
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-8);
+}
+.page--wide { max-width: 68rem; }
+.page__head { margin-bottom: var(--sp-6); }
+.page__head .label { display: block; margin-bottom: var(--sp-2); }
+.page__lede { margin-top: var(--sp-3); color: var(--text-muted); max-width: 42ch; }
+
+/* ------------------------------------------------------------------ phone -- */
+
+@media (max-width: 860px) {
+  .app,
+  .app[data-sidebar='collapsed'] { grid-template-columns: minmax(0, 1fr); }
+
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(84vw, var(--sidebar-w));
+    transform: translateX(-101%);
+    transition: transform var(--t-base) var(--ease-settle);
+    box-shadow: var(--shadow-lg);
+    padding-top: calc(var(--sp-3) + env(safe-area-inset-top));
+  }
+  .app[data-drawer='open'] .sidebar { transform: translateX(0); }
+
+  /* Collapsed is a desktop idea; on a phone the drawer is either open or gone. */
+  .app[data-sidebar='collapsed'] .brand__word,
+  .app[data-sidebar='collapsed'] .new-chat__label,
+  .app[data-sidebar='collapsed'] .nav__label,
+  .app[data-sidebar='collapsed'] .nav__tag,
+  .app[data-sidebar='collapsed'] .nav__tier,
+  .app[data-sidebar='collapsed'] .bridge__text,
+  .app[data-sidebar='collapsed'] .user-chip__body { display: revert; }
+  .app[data-sidebar='collapsed'] .sidebar__head { justify-content: space-between; padding-left: var(--sp-2); }
+  .app[data-sidebar='collapsed'] .sidebar__toggle { display: none; }
+  .app[data-sidebar='collapsed'] .new-chat,
+  .app[data-sidebar='collapsed'] .nav__item,
+  .app[data-sidebar='collapsed'] .bridge,
+  .app[data-sidebar='collapsed'] .user-chip { justify-content: flex-start; padding: 0 var(--sp-3); }
+
+  .topbar {
+    padding-top: env(safe-area-inset-top);
+    min-height: calc(56px + env(safe-area-inset-top));
+  }
+  .topbar__menu { display: inline-grid; }
+
+  .page { padding: var(--sp-5) var(--sp-4) var(--sp-8); }
+}

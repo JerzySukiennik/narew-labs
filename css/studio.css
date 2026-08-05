@@ -1,0 +1,120 @@
+/* Image Studio and its greyed-out twin, Video Studio. */
+
+.studio__state {
+  margin-bottom: var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  font-size: var(--step--1);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.studio__state[data-kind='off'] {
+  border-color: color-mix(in srgb, var(--warn) 40%, var(--line));
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
+}
+.studio__state[data-kind='lock'] {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+
+/* --------------------------------------------------------------- presets -- */
+/* A row, not a grid: these are examples to skim, and the horizontal scroll is
+   contained so the page itself never moves sideways. */
+
+.presets {
+  display: flex;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5);
+  padding-bottom: var(--sp-2);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.preset {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  display: grid;
+  gap: var(--sp-1);
+  width: 12.5rem;
+  padding: var(--sp-4);
+  text-align: left;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  transition: border-color var(--t-fast) var(--ease-out),
+              background var(--t-fast) var(--ease-out),
+              transform var(--t-fast) var(--ease-out);
+}
+.preset:hover { border-color: var(--accent-line); background: var(--surface-2); }
+.preset:active { transform: scale(0.985); }
+
+.preset__title {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-weight: 600;
+  letter-spacing: var(--track-title);
+}
+.preset__prompt { font-size: var(--step--1); }
+
+.preset--ghost { opacity: 0.42; pointer-events: none; }
+
+/* ------------------------------------------------------------------ grid -- */
+
+.studio__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: var(--sp-5);
+  align-items: start;
+}
+
+.drop {
+  display: grid;
+  place-items: center;
+  min-height: 18rem;
+  padding: var(--sp-5);
+  border-radius: var(--r-lg);
+  border: 1px dashed var(--line-strong);
+  background: var(--surface);
+  color: var(--text-muted);
+  text-align: center;
+  overflow: hidden;
+  transition: border-color var(--t-fast) var(--ease-out), background var(--t-fast) var(--ease-out);
+}
+.drop:hover, .drop.is-over { border-color: var(--accent); background: var(--accent-soft); }
+.drop__empty { display: grid; justify-items: center; gap: var(--sp-2); }
+.drop__empty svg { color: var(--accent); }
+.drop__img { max-height: 22rem; border-radius: var(--r-md); }
+
+.drop--off { pointer-events: none; opacity: 0.45; filter: saturate(0.2); }
+
+.studio__panel { display: grid; gap: var(--sp-3); }
+.studio__prompt { min-height: 5.5rem; padding: var(--sp-3) var(--sp-4); resize: vertical; line-height: 1.5; }
+.studio__go { width: 100%; }
+.studio__hint { font-size: var(--step--1); min-height: 1.2em; }
+
+.studio__progress { display: grid; gap: var(--sp-2); }
+
+.studio__result {
+  margin: var(--sp-6) 0 0;
+  display: grid;
+  gap: var(--sp-3);
+}
+.studio__result img { border-radius: var(--r-lg); border: 1px solid var(--line); }
+.studio__result-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+.studio__result-actions { display: flex; gap: var(--sp-2); }
+
+/* The whole screen reads as switched off, not merely empty. */
+.studio--off .page__head, .studio--off .studio__grid { filter: saturate(0.35); }
+
+@media (max-width: 860px) {
+  .studio__grid { grid-template-columns: minmax(0, 1fr); }
+  .preset { width: 11rem; }
+}

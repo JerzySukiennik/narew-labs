@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Narew Labs</title>
+<script>
+  /* GitHub Pages has no server-side routing, so every unknown path lands here.
+     The one path that means something is /r/<uid> — a referral link — and it is
+     turned back into a query the app can read. Everything else goes home. */
+  (function () {
+    var m = location.pathname.match(/^\/r\/([A-Za-z0-9]{6,})\/?$/);
+    location.replace(m ? '/?ref=' + m[1] + '#/account' : '/');
+  })();
+</script>
+</head>
+<body></body>
+</html>

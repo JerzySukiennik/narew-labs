@@ -1,0 +1,336 @@
+/* Chat: the transcript column and the composer dock under it. */
+
+.chat {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: 100%;
+}
+
+.chat__scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+/* --------------------------------------------------------------- the hero -- */
+/* Empty state: greeting centred in the space the transcript will take. */
+
+.chat__hero {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--sp-3);
+  min-height: 46vh;
+  padding: var(--sp-7) var(--sp-5) var(--sp-5);
+  text-align: center;
+}
+.chat__greeting { max-width: 18ch; }
+.chat__lede { max-width: 40ch; font-size: var(--step-0); }
+
+.chat[data-state='running'] .chat__hero { display: none; }
+
+/* ------------------------------------------------------------- transcript -- */
+
+.chat__transcript {
+  max-width: var(--reading);
+  margin: 0 auto;
+  padding: var(--sp-5) var(--sp-5) var(--sp-6);
+  display: grid;
+  gap: var(--sp-5);
+}
+
+.msg { display: grid; gap: var(--sp-2); }
+
+.msg--user {
+  justify-items: end;
+  justify-self: end;
+  max-width: min(42rem, 88%);
+}
+.msg--user .msg__body {
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg) var(--r-lg) var(--r-sm) var(--r-lg);
+}
+.msg__image {
+  max-width: 260px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+}
+
+/* An aside from the app, not from either party in the conversation: a photo the
+   history could not keep, a generation the browser ended itself. Quiet, and
+   never mistakeable for something a model said. */
+.msg__note {
+  font-size: var(--step--1);
+  color: var(--text-faint);
+  font-style: italic;
+}
+.msg--user .msg__note { text-align: right; }
+
+.msg--model .msg__who { margin-bottom: var(--sp-1); }
+.msg__body > * + * { margin-top: var(--sp-3); }
+.msg__body ul, .msg__body ol { padding-left: 1.25rem; display: grid; gap: var(--sp-1); }
+.msg__body ul { list-style: disc; }
+.msg__body ol { list-style: decimal; }
+
+/* A caret that keeps time while the Mac types, so a slow model reads as slow
+   rather than as broken. */
+.msg__cursor {
+  display: inline-block;
+  width: 0.5ch;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: var(--accent);
+  animation: caret 1.05s steps(2) infinite;
+}
+.msg:not(.is-waiting):not(:last-child) .msg__cursor { display: none; }
+@keyframes caret { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .msg__cursor { animation: none; opacity: 0.6; } }
+
+/* ----------------------------------------------------------------- dock -- */
+
+.composer-dock {
+  position: relative;
+  padding: var(--sp-3) var(--sp-5) calc(var(--sp-4) + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg) 62%, transparent);
+}
+
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-2);
+  max-width: var(--reading);
+  margin: 0 auto var(--sp-3);
+}
+.suggestions:empty { display: none; }
+
+.suggestion {
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: var(--step--1);
+  transition: background var(--t-fast) var(--ease-out),
+              color var(--t-fast) var(--ease-out),
+              transform var(--t-fast) var(--ease-out);
+}
+.suggestion:hover { background: var(--surface-2); color: var(--text); }
+.suggestion:active { transform: scale(0.97); }
+
+.composer-block {
+  max-width: var(--reading);
+  margin: 0 auto var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r-md);
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--line));
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  color: var(--text);
+  font-size: var(--step--1);
+  text-align: center;
+}
+.composer-block[hidden] { display: none; }
+
+.composer { max-width: var(--reading); margin: 0 auto; }
+
+.composer__attach {
+  position: relative;
+  width: fit-content;
+  margin-bottom: var(--sp-2);
+}
+.composer__attach img { max-height: 96px; border-radius: var(--r-md); border: 1px solid var(--line); }
+.composer__attach-x {
+  position: absolute;
+  top: -8px; right: -8px;
+  display: grid;
+  place-items: center;
+  width: 24px; height: 24px;
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+}
+.composer__attach-x svg { width: 13px; height: 13px; }
+
+/* The pill. It grows in height with the prompt and never in width. */
+.composer__pill {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--t-fast) var(--ease-out), box-shadow var(--t-base) var(--ease-out);
+}
+.composer__pill:focus-within {
+  border-color: var(--accent-line);
+  box-shadow: var(--shadow-md);
+}
+
+.composer__plus,
+.composer__send {
+  display: grid;
+  place-items: center;
+  width: 38px; height: 38px;
+  border-radius: var(--r-pill);
+  transition: background var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out);
+}
+.composer__plus { color: var(--text-muted); }
+.composer__plus:hover { background: var(--surface-2); color: var(--text); }
+.composer__plus svg, .composer__send svg { width: 19px; height: 19px; }
+.composer__plus:active, .composer__send:active { transform: scale(0.94); }
+
+.composer__send { background: var(--accent); color: #06131a; }
+:root[data-theme='light'] .composer__send { color: #fff; }
+.composer__send:disabled { background: var(--surface-2); color: var(--text-faint); cursor: default; }
+.composer__send.is-stopping { background: var(--text); color: var(--bg); }
+
+.composer__input {
+  /* 16px minimum: anything smaller makes Safari on iOS zoom the page on focus. */
+  font-size: max(1rem, var(--step-0));
+  line-height: 1.5;
+  padding: var(--sp-2) 0;
+  min-height: 38px;
+  max-height: 180px;
+  border: 0;
+  background: none;
+  resize: none;
+  overflow-y: auto;
+}
+.composer__input:disabled { color: var(--text-faint); }
+
+.composer__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+  padding: 0 var(--sp-1);
+}
+.composer__hint {
+  min-width: 0;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------- picker -- */
+
+.picker { position: relative; flex: none; }
+
+.picker__button {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 34px;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--step--1);
+  transition: background var(--t-fast) var(--ease-out);
+}
+.picker__button:hover { background: var(--surface-2); }
+
+.picker__dot {
+  width: 7px; height: 7px;
+  border-radius: var(--r-pill);
+  background: var(--text-faint);
+  flex: none;
+}
+.picker__dot[data-state='online'] {
+  background: var(--ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent);
+}
+
+.picker__menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--sp-2));
+  width: min(280px, 78vw);
+  padding: var(--sp-2);
+  display: grid;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+  transform-origin: bottom right;
+  z-index: 20;
+}
+.picker__menu[hidden] { display: none; }
+
+.picker__item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  text-align: left;
+  transition: background var(--t-fast) var(--ease-out);
+}
+.picker__item:hover { background: var(--surface-2); }
+.picker__item.is-current { background: var(--accent-soft); }
+.picker__body { display: grid; flex: 1; min-width: 0; line-height: 1.3; }
+.picker__title { font-size: var(--step--1); font-weight: 500; }
+.picker__desc { font-size: 0.7rem; color: var(--text-faint); }
+.picker__state {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* ----------------------------------------------------------- plus panel -- */
+
+.plus-panel {
+  position: absolute;
+  left: max(var(--sp-5), calc(50% - var(--reading) / 2));
+  bottom: calc(100% - var(--sp-2));
+  width: min(260px, 80vw);
+  padding: var(--sp-2);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+  transform-origin: bottom left;
+  z-index: 20;
+}
+.plus-panel[hidden] { display: none; }
+
+.plus-panel__item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: 42px;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: var(--step--1);
+  transition: background var(--t-fast) var(--ease-out);
+}
+.plus-panel__item:hover { background: var(--surface-2); }
+.plus-panel__item svg { width: 18px; height: 18px; color: var(--text-muted); }
+
+/* ------------------------------------------------------------------ phone -- */
+
+@media (max-width: 860px) {
+  .chat__transcript { padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  .composer-dock { padding: var(--sp-2) var(--sp-4) calc(var(--sp-3) + env(safe-area-inset-bottom)); }
+  .chat__hero { min-height: 38vh; padding: var(--sp-6) var(--sp-4) var(--sp-4); }
+  .plus-panel { left: var(--sp-4); }
+  .composer__hint { display: none; }
+}

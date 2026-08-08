@@ -8,6 +8,7 @@
  */
 
 import * as store from '../store.js';
+import { IMAGE_MODELS } from '../bridge.js';
 import { $, $$, esc, toast, gsap, reduced } from '../ui.js';
 
 const PRESETS = [
@@ -62,6 +63,19 @@ export async function mount(root, ctx) {
             <p class="muted" id="progress-text">Pracuję…</p>
           </div>
 
+          <div class="picker studio__picker" id="picker">
+            <button type="button" class="picker__button" id="picker-btn"
+                    aria-haspopup="listbox" aria-expanded="false">
+              <span class="picker__dot" id="picker-dot" data-state="offline"></span>
+              <span id="picker-name">G-Image 2.1</span>
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                   aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <ul class="picker__menu" id="picker-menu" role="listbox"
+                aria-label="Wersja modelu" hidden></ul>
+          </div>
+
           <button class="btn btn--accent studio__go" id="go">Przerób</button>
           <p class="studio__hint muted" id="hint"></p>
         </div>
@@ -79,7 +93,14 @@ export async function mount(root, ctx) {
       </figure>
     </div>`;
 
-  ui = { root, ctx, image: null, busy: false, active: null, handlers: [] };
+  ui = {
+    root, ctx, image: null, busy: false, active: null, handlers: [],
+    /* Remembered across visits: someone who deliberately picked an older
+       version did so for a reason, and should not have to pick it again. */
+    model: localStorage.getItem('narew.imageModel') || IMAGE_MODELS[0].id,
+    subOpen: false,
+  };
+  renderPicker();
 
   wire();
   syncState();
@@ -98,6 +119,38 @@ export function unmount() {
 const on = (t, ty, fn) => { t.addEventListener(ty, fn); ui.handlers.push([t, ty, fn]); };
 
 function wire() {
+  /* picker */
+  const pickerBtn = $('#picker-btn', ui.root);
+  const pickerMenu = $('#picker-menu', ui.root);
+  on(pickerBtn, 'click', () => togglePicker());
+  on(pickerMenu, 'click', (e) => {
+    /* The parent row opens the submenu instead of choosing anything — it is a
+       container, not a model. */
+    if (e.target.closest('#legacy-btn')) {
+      ui.subOpen = !ui.subOpen;
+      renderPicker();
+      return;
+    }
+    const item = e.target.closest('[data-model]');
+    if (!item) return;
+    ui.model = item.dataset.model;
+    localStorage.setItem('narew.imageModel', ui.model);
+    togglePicker(false);
+    renderPicker();
+  });
+  on(document, 'pointerdown', (e) => {
+    const p = $('#picker', ui.root);
+    if (p && !p.contains(e.target)) togglePicker(false);
+  });
+  on(document, 'keydown', (e) => {
+    if (e.key === 'Escape' && !$('#picker-menu', ui.root).hidden) {
+      togglePicker(false);
+      pickerBtn.focus();
+    }
+  });
+  /* Availability changes when the Mac wakes or sleeps. */
+  on(document, 'narew:presence', () => renderPicker());
+
   const { root } = ui;
   const drop = $('#drop', root);
   const file = $('#file', root);
@@ -240,7 +293,7 @@ function run() {
 
   /* One edit is roughly 35 s of work on the Mac, so the dead man's switch is
      generous — it exists to catch a Mac that died, not one that is busy. */
-  ui.active = ui.ctx.bridge.run({ model: 'g-images', text: prompt, image: ui.image }, (out) => {
+  ui.active = ui.ctx.bridge.run({ model: ui.model, text: prompt, image: ui.image }, (out) => {
     if (!ui) return;
     if (typeof out.progress === 'number') {
       fill.style.width = `${Math.round(out.progress * 100)}%`;
@@ -268,4 +321,77 @@ function showResult(dataUrl, label) {
   box.hidden = false;
   if (!reduced()) gsap.from(box, { opacity: 0, y: 16, duration: 0.45, ease: 'power3.out' });
   box.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'nearest' });
+}
+
+
+/* ---------------------------------------------------------------- picker -- */
+
+/** Availability comes from the Mac's published list; the versions are ours. */
+function models() {
+  const live = ui.ctx.bridge.modelList();
+  return IMAGE_MODELS.map((m) => ({
+    ...m,
+    available: live.some((l) => l.id === m.id && l.available),
+  }));
+}
+
+function currentImageModel() {
+  const all = models();
+  return all.find((m) => m.id === ui.model) || all[0];
+}
+
+/*
+ * Current versions sit in the menu; superseded ones live one level in, behind
+ * "Starsze wersje". A newer model is not automatically better at every edit, so
+ * the old ones stay reachable — just not in the way of the recommended choice.
+ */
+function renderPicker() {
+  const all = models();
+  const current = currentImageModel();
+  const btn = $('#picker-name', ui.root);
+  if (!btn) return;
+  btn.textContent = current.name;
+  $('#picker-dot', ui.root).dataset.state = current.available ? 'online' : 'offline';
+
+  const row = (m) => `
+    <li role="presentation">
+      <button type="button" role="option" data-model="${esc(m.id)}"
+              aria-selected="${m.id === ui.model}"
+              class="picker__item ${m.id === ui.model ? 'is-current' : ''}">
+        <span class="picker__dot" data-state="${m.available ? 'online' : 'offline'}"></span>
+        <span class="picker__body">
+          <span class="picker__title">${esc(m.name)}</span>
+          <span class="picker__desc">${esc(m.desc || '')}</span>
+        </span>
+        <span class="picker__state">${m.available ? 'gotowy' : 'śpi'}</span>
+      </button>
+    </li>`;
+
+  const legacy = all.filter((m) => m.legacy);
+  const sub = legacy.length ? `
+    <li role="presentation" class="picker__submenu ${ui.subOpen ? 'is-open' : ''}">
+      <button type="button" class="picker__item picker__item--parent" id="legacy-btn"
+              aria-haspopup="true" aria-expanded="${ui.subOpen}">
+        <span class="picker__body">
+          <span class="picker__title">Starsze wersje</span>
+          <span class="picker__desc">${legacy.length} ${legacy.length === 1 ? 'model' : 'modele'}</span>
+        </span>
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+      </button>
+      <ul class="picker__sub" role="listbox" aria-label="Starsze wersje">
+        ${legacy.map(row).join('')}
+      </ul>
+    </li>` : '';
+
+  $('#picker-menu', ui.root).innerHTML = all.filter((m) => !m.legacy).map(row).join('') + sub;
+}
+
+function togglePicker(open) {
+  const menu = $('#picker-menu', ui.root);
+  const next = open === undefined ? menu.hidden : open;
+  menu.hidden = !next;
+  $('#picker-btn', ui.root).setAttribute('aria-expanded', String(next));
+  if (!next) { ui.subOpen = false; renderPicker(); }
 }

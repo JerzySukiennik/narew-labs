@@ -118,3 +118,54 @@
   .studio__grid { grid-template-columns: minmax(0, 1fr); }
   .preset { width: 11rem; }
 }
+
+/* ------------------------------------------------ image model chooser -- */
+
+.studio__picker { margin-bottom: var(--sp-3); }
+
+/* The menu drops DOWN here, unlike chat's, because this picker sits mid-panel
+   with room below rather than pinned above a composer. */
+.studio__picker .picker__menu {
+  right: auto;
+  left: 0;
+  bottom: auto;
+  top: calc(100% + var(--sp-2));
+  transform-origin: top left;
+}
+
+/* Superseded versions live one level in. Opening to the right keeps the
+   recommended models in place instead of pushing them around as the list grows. */
+.picker__submenu { position: relative; }
+
+.picker__item--parent { width: 100%; }
+
+.picker__sub {
+  position: absolute;
+  left: calc(100% + var(--sp-1));
+  top: calc(var(--sp-1) * -1);
+  width: max(200px, 100%);
+  padding: var(--sp-2);
+  display: none;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 21;
+}
+.picker__submenu.is-open .picker__sub { display: grid; }
+
+/* On a narrow screen there is no room to the right, so it becomes a nested
+   list rather than a flyout that would hang off the edge. */
+@media (max-width: 560px) {
+  .picker__sub {
+    position: static;
+    width: auto;
+    margin-top: 2px;
+    border: 0;
+    box-shadow: none;
+    padding: 0 0 0 var(--sp-3);
+    border-left: 1px solid var(--line);
+    border-radius: 0;
+  }
+}

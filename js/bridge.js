@@ -58,6 +58,18 @@ export const FALLBACK_MODELS = [
   { id: 'g-mini', name: 'G-Mini', desc: '178M · liczby i dom', available: false },
 ];
 
+/*
+ * Image models, newest first. `legacy` keeps a version in the picker without
+ * putting it in the way — superseded models stay reachable because a newer one
+ * is not automatically better at everything, but the default should be the one
+ * we would recommend.
+ */
+export const IMAGE_MODELS = [
+  { id: 'g-image-2-1', name: 'G-Image 2.1', desc: '98M · najnowszy', available: false },
+  { id: 'g-image-2', name: 'G-Image 2', desc: '70M · sprawdzony', available: false },
+  { id: 'g-image-1', name: 'G-Image 1', desc: '22M · pierwszy', available: false, legacy: true },
+];
+
 export class MacBridge {
   constructor(client, { onPresence } = {}) {
     this.client = client;

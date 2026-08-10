@@ -24,7 +24,7 @@ export async function mount(root, ctx) {
     if (user.isAnonymous) {
       confirmDestructive({
         title: 'Wyloguj gościa',
-        body: 'Konta gościa nie da się odzyskać po wylogowaniu — znikną rozmowy, plan i zużycie. Chcesz je zachować? Przypnij je do Google w Ustawieniach.',
+        body: 'Konta gościa nie da się odzyskać po wylogowaniu - znikną rozmowy, plan i zużycie. Chcesz je zachować? Przypnij je do Google w Ustawieniach.',
         word: 'wyloguj',
         action: async () => { await signOutNow(); ctx.go('chat'); },
       });
@@ -57,7 +57,7 @@ function signedIn(user, profile) {
       <header class="page__head" data-enter>
         <span class="label">Konto</span>
         <h2 class="title">${esc(profile?.name || user.displayName || 'Bez imienia')}</h2>
-        <p class="page__lede">${esc(user.email || (user.isAnonymous ? 'konto gościa — bez adresu e-mail' : 'brak adresu e-mail'))}</p>
+        <p class="page__lede">${esc(user.email || (user.isAnonymous ? 'konto gościa - bez adresu e-mail' : 'brak adresu e-mail'))}</p>
       </header>
 
       <div class="card account" data-enter>

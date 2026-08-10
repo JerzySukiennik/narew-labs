@@ -78,11 +78,9 @@ function render(root) {
   root.innerHTML = `
     <div class="page page--wide">
       <header class="page__head" data-enter>
-        <span class="label">Plany</span>
-        <h2 class="title">Trzy ryby</h2>
+        <h2 class="title">Upgrade</h2>
         <p class="page__lede">
-          Masz teraz <strong>${esc(current.name)}</strong>${until ? ` — do ${new Date(until).toLocaleDateString('pl')}` : ''}.
-          Płatności są atrapą: to projekt domowy, nic nie jest pobierane.
+          Masz teraz <strong>${esc(current.name)}</strong>${until ? ` - do ${new Date(until).toLocaleDateString('pl')}` : ''}.
         </p>
       </header>
 
@@ -94,7 +92,7 @@ function render(root) {
         <div class="referral__body">
           <h3 class="subtitle">Poleć znajomemu</h3>
           <p class="muted">
-            Kto założy konto z twojego linku, dostaje 7 dni planu Lin — i ty razem z nim.
+            Kto założy konto z twojego linku, dostaje 7 dni planu Lin - i ty razem z nim.
             Do tej pory poleceń: <strong>${store.state.profile?.referrals || 0}</strong>.
           </p>
         </div>
@@ -122,7 +120,7 @@ function card(tier, current) {
       <div class="tier__fish">${FISH[tier.id]}</div>
       <h3 class="tier__name">${esc(tier.name)}</h3>
       <p class="tier__blurb muted">${esc(tier.blurb)}</p>
-      <p class="tier__price mono">${tier.price ? `${tier.price} zł<span class="tier__per">/mies.</span>` : 'za darmo'}</p>
+      <p class="tier__price mono">${tier.price ? `${tier.price} zł<span class="tier__per">/mies.</span>` : '0 zł<span class="tier__per">/mies.</span>'}</p>
       <ul class="tier__perks">
         ${tier.perks.map((p) => `<li>${esc(p)}</li>`).join('')}
       </ul>
@@ -170,7 +168,7 @@ function checkout(tierId, root) {
         <button class="btn btn--ghost" id="co-cancel">Anuluj</button>
         <button class="btn btn--primary" id="co-pay">${tier.price ? 'Zapłać' : 'Przełącz'}</button>
       </div>
-      <p class="checkout__fine">Atrapa — pola karty nigdzie nie są wysyłane.</p>
+      <p class="checkout__fine">Atrapa - pola karty nigdzie nie są wysyłane.</p>
 
       <details class="promo">
         <summary class="label">Mam kod promocyjny</summary>

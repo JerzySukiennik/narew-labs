@@ -206,7 +206,7 @@ export class MacBridge {
       clearTimeout(idle);
       idle = setTimeout(() => {
         end(latest
-          ? `${latest}\n\nMac zamilkł w połowie odpowiedzi — reszty nie będzie.`
+          ? `${latest}\n\nMac zamilkł w połowie odpowiedzi - reszty nie będzie.`
           : `Mac nie odezwał się przez ${Math.round(idleTimeout / 1000)} s. Zadanie poszło, odpowiedź nie wróciła.`);
       }, idleTimeout);
     };

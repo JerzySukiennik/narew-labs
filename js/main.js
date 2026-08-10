@@ -116,10 +116,6 @@ function initSidebar() {
      what previously stranded a collapsed desktop sidebar at 68 px with a
      full-viewport scrim over the app and no way back. */
   $('#sidebar-open').addEventListener('click', () => {
-    if (matchMedia('(min-width: 861px)').matches) {
-      applySidebar('expanded');
-      return;
-    }
     app.dataset.drawer = 'open';
     $('#sidebar-scrim').hidden = false;
   });
@@ -145,11 +141,8 @@ export function setTheme(theme) {
   document.dispatchEvent(new CustomEvent('narew:theme', { detail: theme }));
 }
 
-function initTheme() {
-  $('#theme-toggle').addEventListener('click', () => {
-    setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
-  });
-}
+/* The theme lives in Settings. It is a preference someone sets once, not a
+   control that earns a permanent seat in the chrome of every screen. */
 
 /* ------------------------------------------------------------- upgrade -- */
 /* A decision, not a place: it opens over whatever screen you were on and
@@ -159,6 +152,61 @@ function initUpgrade() {
     e.preventDefault();
     const mod = await import('./views/upgrade.js');
     mod.openAsOverlay(ctx);
+  });
+}
+
+/* ---------------------------------------------------------------- avatar -- */
+
+/**
+ * Change the profile picture.
+ *
+ * Stored as a data URL on the account rather than uploaded anywhere: this app
+ * has no file storage, and a 64 px square costs a few kilobytes in a document
+ * that is already being written. Squared and shrunk here so a 4 MB photo from a
+ * phone never reaches Firestore.
+ */
+function initAvatar() {
+  const input = $('#avatar-input');
+  $('#avatar-edit').addEventListener('click', (e) => {
+    e.preventDefault();          // the chip around it is a link to the account
+    e.stopPropagation();
+    input.click();
+  });
+
+  input.addEventListener('change', async () => {
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file || !store.state.user) return;
+    try {
+      await store.saveProfile({ photoURL: await squareThumb(file) });
+      refreshShell();
+      toast('Zdjęcie zmienione.', 'ok');
+    } catch (err) {
+      toast(`Nie udało się: ${err.message}`, 'error', 6000);
+    }
+  });
+}
+
+/** Centre-cropped 128 px JPEG, small enough to live inside the account doc. */
+function squareThumb(file, size = 128) {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) return reject(new Error('to nie jest obrazek'));
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('nieczytelny plik'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('uszkodzony obrazek'));
+      img.onload = () => {
+        const side = Math.min(img.width, img.height);
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = size;
+        canvas.getContext('2d').drawImage(
+          img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, size, size);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
   });
 }
 
@@ -176,11 +224,35 @@ function initBridge() {
       node.dataset.state = online ? 'online' : 'offline';
       const names = models.filter((m) => m.available).map((m) => m.name);
       $('#bridge-text').textContent = online
-        ? (names.length ? `Most otwarty · ${names.join(', ')}` : 'Most otwarty, brak modeli')
+        ? (names.length ? names.join(', ') : 'brak modeli')
         : 'Mac w domu śpi';
       document.dispatchEvent(new CustomEvent('narew:presence', { detail: { online, models } }));
+      drawLink();
     },
   });
+  /* The beat lands every 20 s, so the reading is refreshed between beats too —
+     otherwise a Mac that died would keep showing its last good level. */
+  setInterval(drawLink, 4000);
+}
+
+/**
+ * Draw the link as a level, not as a light.
+ *
+ * The Mac writes a heartbeat every 20 seconds. How stale the newest one is says
+ * something about the link that "online" cannot: a beat two seconds old means
+ * the connection is keeping up, and one fifty seconds old means it is limping
+ * even though nothing has formally gone offline yet. Four bars, from the age of
+ * the last beat.
+ */
+function drawLink() {
+  const node = $('#bridge-state');
+  if (!bridge) return;
+  const age = bridge.lastBeat ? (Date.now() - bridge.lastBeat) / 1000 : Infinity;
+  const level = !bridge.online ? 0 : age < 25 ? 4 : age < 40 ? 3 : age < 55 ? 2 : 1;
+  node.dataset.level = String(level);
+  node.title = bridge.online
+    ? `Sygnał ${level}/4 · ostatni puls ${Math.round(age)} s temu`
+    : 'Mac w domu śpi';
 }
 
 /* ----------------------------------------------------------------- shell -- */
@@ -197,8 +269,9 @@ export function refreshShell() {
 
   const avatar = $('#user-avatar');
   avatar.textContent = name.slice(0, 1).toUpperCase();
-  avatar.style.backgroundImage = user?.photoURL ? `url(${user.photoURL})` : '';
-  avatar.classList.toggle('has-photo', Boolean(user?.photoURL));
+  const photo = profile?.photoURL || user?.photoURL;
+  avatar.style.backgroundImage = photo ? `url(${photo})` : '';
+  avatar.classList.toggle('has-photo', Boolean(photo));
 
   /* Free plan does not see the doors it cannot open — Image and Video Studio
      are simply absent from the list rather than shown locked. */
@@ -271,9 +344,9 @@ async function boot() {
   import('./annotate.js').then((m) => m.start()).catch(() => {});
 
   initSidebar();
-  initTheme();
   initBridge();
   initUpgrade();
+  initAvatar();
 
   /* A redirect sign-in lands back here; surfacing its error is the only way the
      user learns that, say, the provider was never enabled. */

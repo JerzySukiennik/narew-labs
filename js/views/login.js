@@ -27,10 +27,7 @@ export function mount(root) {
         </span>
 
         <h1 class="gate__title">Narew Labs</h1>
-        <p class="gate__lede">
-          Modele językowe wytrenowane od zera w Gzowie. Odpowiada na nie laptop
-          stojący w domu — więc kiedy ma zamkniętą klapę, aplikacja mówi to wprost.
-        </p>
+        <p class="gate__lede">Modele językowe trenowane w Gzowie.</p>
 
         <div class="gate__actions">
           <button class="btn btn--primary gate__btn" id="login-google">
@@ -45,11 +42,7 @@ export function mount(root) {
 
         <p class="gate__error" id="login-error" hidden></p>
 
-        <p class="gate__fine">
-          Gość działa tak samo, ale żyje tylko w tej przeglądarce — wyczyszczenie
-          danych strony kasuje go bezpowrotnie. Konto trzyma imię, zużycie
-          i historię rozmów; nic z tego nie wychodzi poza Firebase tego projektu.
-        </p>
+        <p class="gate__fine">Konto gościa żyje tylko w tej przeglądarce.</p>
 
         <svg class="gate__river" viewBox="0 0 300 20" preserveAspectRatio="none" aria-hidden="true">
           <path d="M0 10c18-8 32 8 50 0s32-8 50 0 32 8 50 0 32-8 50 0 32 8 50 0 32-8 50 0"

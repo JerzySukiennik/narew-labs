@@ -114,8 +114,8 @@ async function upgradePreviews() {
   const note = host.querySelector('.presets__note');
   if (note) {
     note.textContent = real
-      ? `Prawdziwe zdjęcie przerobione przez ${currentImageModel().name} — po lewej oryginał, po prawej wynik.`
-      : 'Podglądy są rysunkiem poglądowym — pokazują kierunek przeróbki, nie wynik modelu.';
+      ? `Prawdziwe zdjęcie przerobione przez ${currentImageModel().name} - po lewej oryginał, po prawej wynik.`
+      : 'Podglądy są rysunkiem poglądowym - pokazują kierunek przeróbki, nie wynik modelu.';
   }
 }
 
@@ -141,8 +141,7 @@ export async function mount(root, ctx) {
     <div class="page page--wide studio">
       <header class="studio__head" data-enter>
         <div>
-          <span class="label">Image Studio</span>
-          <h2 class="title">Przerabianie zdjęć</h2>
+          <h2 class="title">Image Studio</h2>
         </div>
         <!-- The version belongs to the screen, not to one button: it decides
              what every edit here is answered by, so it sits with the title
@@ -164,7 +163,7 @@ export async function mount(root, ctx) {
       <p class="studio__state" id="studio-state" data-enter hidden></p>
 
       <section class="studio__step" data-enter>
-        <h3 class="studio__step-title"><span class="studio__step-n">1</span> Wybierz przeróbkę</h3>
+        <h3 class="studio__step-title"><span class="studio__step-n">1</span> Templates</h3>
         <div class="presets" role="list" aria-label="Gotowe przeróbki">
           ${PRESETS.map((p) => `
             <button type="button" class="preset" role="listitem" data-prompt="${esc(p.prompt)}">
@@ -176,7 +175,7 @@ export async function mount(root, ctx) {
             </button>`).join('')}
         </div>
         <p class="presets__note muted">
-          Podglądy są rysunkiem poglądowym — pokazują kierunek przeróbki, nie wynik modelu.
+          Podglądy są rysunkiem poglądowym - pokazują kierunek przeróbki, nie wynik modelu.
         </p>
       </section>
 
@@ -191,11 +190,13 @@ export async function mount(root, ctx) {
               <p class="muted">JPG lub PNG. Duże pliki zmniejszę sam.</p>
             </div>
             <img class="drop__img" id="drop-img" alt="Wgrane zdjęcie" hidden>
-            <button type="button" class="drop__swap" id="drop-swap" hidden>Zmień zdjęcie</button>
+            <button type="button" class="drop__swap" id="drop-swap" hidden>Zmień</button>
+            <button type="button" class="drop__clear" id="drop-clear" hidden aria-label="Usuń zdjęcie">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
           </div>
 
           <div class="studio__panel">
-            <label class="label" for="prompt">Co mam zmienić</label>
             <textarea class="field studio__prompt" id="prompt" rows="3" placeholder="np. zrób to czarno-białe"></textarea>
 
             <div class="studio__progress" id="progress" hidden>
@@ -310,6 +311,7 @@ function wire() {
   on($('#prompt', root), 'input', syncState);
   on($('#go', root), 'click', run);
   on($('#drop-swap', root), 'click', (e) => { e.stopPropagation(); file.click(); });
+  on($('#drop-clear', root), 'click', (e) => { e.stopPropagation(); setImage(null); });
   on($('#result-reuse', root), 'click', () => {
     const src = $('#result-img', root).src;
     setImage(src);
@@ -334,9 +336,9 @@ function reasonBlocked() {
      all times rather than only once someone has pressed the button. */
   const picked = currentImageModel();
   if (!picked.wire) return unservableReason(picked);
-  if (!ui.ctx.bridge.online) return 'Mac w domu śpi — Image Studio potrzebuje go do pracy.';
+  if (!ui.ctx.bridge.online) return 'Mac w domu śpi - Image Studio potrzebuje go do pracy.';
   if (!ui.ctx.bridge.isAvailable('g-images')) {
-    return 'G-Images nie jest jeszcze wytrenowany — na razie istnieje jako specyfikacja i pipeline treningowy, więc Mac go nie publikuje.';
+    return 'G-Images nie jest jeszcze wytrenowany - na razie istnieje jako specyfikacja i pipeline treningowy, więc Mac go nie publikuje.';
   }
   return '';
 }
@@ -364,8 +366,7 @@ function syncState() {
   go.disabled = !ready;
   $('#hint', root).textContent = ui.busy
     ? ''
-    : !ui.image ? 'Najpierw wgraj zdjęcie.'
-    : !$('#prompt', root).value.trim() ? 'Napisz, co zmienić — albo wybierz gotowy prompt u góry.'
+    : !$('#prompt', root).value.trim() && ui.image ? 'Napisz, co zmienić albo wybierz template u góry.'
     : '';
 }
 
@@ -400,7 +401,7 @@ function shrink(file) {
           const url = canvas.toDataURL('image/jpeg', q);
           if (url.length <= MAX_IMAGE_CHARS) return resolve(url);
         }
-        reject(new Error('nawet po zmniejszeniu jest za duże — spróbuj innym zdjęciem'));
+        reject(new Error('nawet po zmniejszeniu jest za duże - spróbuj innym zdjęciem'));
       };
       img.src = reader.result;
     };
@@ -415,6 +416,7 @@ function setImage(url) {
   img.hidden = !url;
   $('#drop-empty', ui.root).hidden = Boolean(url);
   $('#drop-swap', ui.root).hidden = !url;
+  $('#drop-clear', ui.root).hidden = !url;
   syncState();
 }
 
@@ -491,8 +493,8 @@ function unservableReason(model) {
   const servable = IMAGE_MODELS.find((m) => m.wire);
   const instead = servable ? ` Działa ${servable.name}.` : '';
   return model.legacy
-    ? `${model.name} jest wycofany — jego wagi nie pasują już do sieci, którą składa Mac, więc nie da się go uruchomić.${instead}`
-    : `${model.name} jeszcze nie istnieje — nie ma wytrenowanego checkpointu.${instead}`;
+    ? `${model.name} jest wycofany - jego wagi nie pasują już do sieci, którą składa Mac, więc nie da się go uruchomić.${instead}`
+    : `${model.name} jeszcze nie istnieje - nie ma wytrenowanego checkpointu.${instead}`;
 }
 
 /* ---------------------------------------------------------------- picker -- */

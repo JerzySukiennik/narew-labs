@@ -169,10 +169,10 @@
   box-shadow: var(--shadow-sm);
   transition: border-color var(--t-fast) var(--ease-out), box-shadow var(--t-base) var(--ease-out);
 }
-.composer__pill:focus-within {
-  border-color: var(--accent-line);
-  box-shadow: var(--shadow-md);
-}
+/* No ring while typing. The caret and the growing box already say where focus
+   is, and a border that lights up on every keystroke is noise. Keyboard users
+   still get the outline via :focus-visible on the textarea itself. */
+.composer__pill:focus-within { box-shadow: var(--shadow-md); }
 
 .composer__plus,
 .composer__send {
@@ -295,10 +295,12 @@
 
 /* ----------------------------------------------------------- plus panel -- */
 
+/* Anchored to the button, not to the column. Covering the examples is the
+   correct trade: the panel came out of the "+" and has to look like it. */
 .plus-panel {
   position: absolute;
   left: max(var(--sp-5), calc(50% - var(--reading) / 2));
-  bottom: calc(100% - var(--sp-2));
+  bottom: var(--plus-panel-bottom, 4.6rem);
   width: min(260px, 80vw);
   padding: var(--sp-2);
   background: var(--surface);

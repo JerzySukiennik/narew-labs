@@ -29,15 +29,14 @@ export function showOnboarding(root) {
 
         <section class="onboard__panel" id="ob-1">
           <h2 class="title">Jak mam do ciebie mówić?</h2>
-          <p class="muted">Tym imieniem przywita cię ekran rozmowy.</p>
           <label class="sr-only" for="ob-name">Imię</label>
           <input class="field onboard__input" id="ob-name" maxlength="40" placeholder="Imię" autocomplete="given-name">
-          <p class="onboard__error" id="ob-error" hidden>Wpisz imię — od 1 do 40 znaków.</p>
+          <p class="onboard__error" id="ob-error" hidden>Wpisz imię - od 1 do 40 znaków.</p>
         </section>
 
         <section class="onboard__panel" id="ob-2" hidden>
           <h2 class="title">Po co tu jesteś?</h2>
-          <p class="muted">Można zaznaczyć kilka. Nic to nie blokuje — pomaga później dobrać, co pokazać najpierw.</p>
+          <p class="muted">Można zaznaczyć kilka. Nic to nie blokuje - pomaga później dobrać, co pokazać najpierw.</p>
           <div class="onboard__grid">
             ${INTERESTS.map((i) => `
               <button type="button" class="onboard__tile" data-interest="${esc(i.id)}" aria-pressed="false">
@@ -49,7 +48,7 @@ export function showOnboarding(root) {
 
         <section class="onboard__panel" id="ob-3" hidden>
           <h2 class="title">Który plan?</h2>
-          <p class="muted">Płotka wystarczy na start — zawsze można zmienić w Upgrade.</p>
+          <p class="muted">Płotka wystarczy na start - zawsze można zmienić w Upgrade.</p>
           <div class="onboard__tiers">
             ${TIERS_ORDER.map((id) => {
               const t = store.TIERS[id];

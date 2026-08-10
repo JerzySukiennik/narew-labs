@@ -251,7 +251,7 @@ export async function redeemPromo(raw) {
     }
     const { tier = 'sum', days = null } = snap.data();
     await grantTier(tier, days);
-    return { ok: true, message: `Kod przyjęty — masz teraz ${TIERS[tier]?.name || tier}.`, tier };
+    return { ok: true, message: `Kod przyjęty - masz teraz ${TIERS[tier]?.name || tier}.`, tier };
   } catch (e) {
     return { ok: false, message: `Nie mogę sprawdzić kodu: ${e.message}` };
   }

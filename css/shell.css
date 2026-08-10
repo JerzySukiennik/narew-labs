@@ -149,13 +149,32 @@
   align-items: center;
   gap: var(--sp-3);
   min-width: 0;
+  width: 100%;
+  padding: var(--sp-2);
+  border-radius: var(--r-md);
   color: var(--text);
   text-decoration: none;
+  text-align: left;
+  transition: background var(--t-fast) var(--ease-out);
 }
-.brand__mark { color: var(--accent); flex: none; }
+.brand:hover { background: var(--surface-2); }
+.brand__mark {
+  color: var(--accent);
+  flex: none;
+  display: grid;
+  place-items: center;
+  transition: transform var(--t-base) var(--ease-settle);
+}
+.brand:hover .brand__mark { transform: translateX(-2px) scaleX(-1); }
+.app[data-sidebar='collapsed'] .brand:hover .brand__mark { transform: translateX(2px); }
+@media (prefers-reduced-motion: reduce) {
+  .brand__mark, .brand:hover .brand__mark { transition: none; transform: none; }
+}
 .brand__word {
+  flex: 1;
+  min-width: 0;
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: var(--step-1);
   font-weight: 600;
   letter-spacing: var(--track-title);
   white-space: nowrap;
@@ -217,10 +236,10 @@
 
 .nav__tag, .nav__tier {
   flex: none;
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   padding: 3px 7px;
   border-radius: var(--r-pill);
   background: var(--surface-2);
@@ -249,7 +268,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--sp-3);
+  gap: var(--sp-2);
   min-height: 44px;
   padding: 0 var(--sp-3);
   border-radius: var(--r-md);
@@ -260,32 +279,35 @@
   overflow: hidden;
 }
 
-.bridge__river {
-  position: absolute;
-  inset: auto 0 0;
-  width: 100%;
-  height: 26px;
-  opacity: 0.5;
-  pointer-events: none;
-}
-.bridge__bank { stroke: var(--line-strong); stroke-width: 1; fill: none; }
-.bridge__flow { stroke: var(--accent); stroke-width: 1.6; fill: none; opacity: 0; }
 
-.bridge[data-state='online'] .bridge__flow {
-  opacity: 0.85;
-  animation: river 9s linear infinite;
-}
+
 .bridge[data-state='online'] { color: var(--text); }
 
-@keyframes river {
-  from { transform: translateX(0); }
-  to { transform: translateX(200px); }
+
+/*
+ * Four bars, driven by how fresh the Mac's last heartbeat is — a real reading of
+ * whether the link is keeping up, not a light that is either on or off. They sit
+ * on their own row under the label, because the wave they replaced ran behind
+ * the text and was unreadable wherever it mattered.
+ */
+.bridge__bars { display: flex; align-items: flex-end; gap: 3px; height: 12px; }
+.bridge__bars i {
+  width: 3px;
+  border-radius: 1px;
+  background: var(--line-strong);
+  transition: background var(--t-base) var(--ease-out);
 }
-/* A slow looping background is exactly the motion vestibular users cannot
-   tolerate, so the river holds still and only the dot carries the state. */
-@media (prefers-reduced-motion: reduce) {
-  .bridge[data-state='online'] .bridge__flow { animation: none; }
-}
+.bridge__bars i:nth-child(1) { height: 35%; }
+.bridge__bars i:nth-child(2) { height: 57%; }
+.bridge__bars i:nth-child(3) { height: 79%; }
+.bridge__bars i:nth-child(4) { height: 100%; }
+
+.bridge[data-level='1'] .bridge__bars i:nth-child(-n + 1),
+.bridge[data-level='2'] .bridge__bars i:nth-child(-n + 2),
+.bridge[data-level='3'] .bridge__bars i:nth-child(-n + 3),
+.bridge[data-level='4'] .bridge__bars i:nth-child(-n + 4) { background: var(--ok); }
+.bridge[data-level='1'] .bridge__bars i:nth-child(1) { background: var(--warn); }
+.bridge[data-level='2'] .bridge__bars i:nth-child(-n + 2) { background: var(--sand); }
 
 .bridge__dot {
   flex: none;
@@ -337,6 +359,24 @@
 }
 .user-chip__avatar.has-photo { color: transparent; border-color: var(--line); }
 
+.user-chip__portrait { position: relative; flex: none; display: grid; }
+.user-chip__edit {
+  position: absolute;
+  right: -5px; bottom: -5px;
+  display: grid;
+  place-items: center;
+  width: 18px; height: 18px;
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  border: 1px solid var(--line-strong);
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease-out);
+}
+.user-chip__edit svg { width: 10px; height: 10px; }
+.user-chip:hover .user-chip__edit,
+.user-chip__edit:focus-visible { opacity: 1; }
+
 .user-chip__body { display: grid; min-width: 0; line-height: 1.25; }
 .user-chip__name { font-size: var(--step--1); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .user-chip__mail { font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -370,7 +410,7 @@
 .app[data-sidebar='collapsed'] .bridge__river { opacity: 0.35; }
 
 /* The toggle moves into the topbar when there is no room for it in the head. */
-.app[data-sidebar='collapsed'] .topbar__menu { display: inline-grid; }
+
 
 /* ----------------------------------------------------------------- topbar -- */
 
@@ -382,10 +422,7 @@
   gap: var(--sp-3);
   min-height: 56px;
   padding: 0 var(--sp-4);
-  background: var(--glass);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border-bottom: 1px solid var(--line);
+  background: var(--bg);
   z-index: 10;
 }
 .topbar__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -408,13 +445,15 @@
 /* --------------------------------------------------------------- overlay -- */
 
 .overlay-host { position: fixed; inset: 0; z-index: var(--z-sheet); }
+/* The plans sheet is three columns wide; every other overlay stays a dialog. */
+.overlay__panel:has(.upgrade-sheet) { --overlay-w: 62rem; }
 .overlay-host[hidden] { display: none; }
 
 .overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: var(--sp-4); }
 .overlay__scrim { position: absolute; inset: 0; background: var(--scrim); backdrop-filter: blur(3px); }
 .overlay__panel {
   position: relative;
-  width: min(560px, 100%);
+  width: min(var(--overlay-w, 560px), 100%);
   max-height: min(86dvh, 760px);
   overflow-y: auto;
   background: var(--surface);

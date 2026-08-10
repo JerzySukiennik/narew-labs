@@ -20,7 +20,7 @@ const SUGGESTIONS = [
 ];
 
 const MODEL_HINT = {
-  'g-micro': 'G-Micro ma 110M parametrów i często się myli. To nie jest wada — to rozmiar.',
+  'g-micro': 'G-Micro ma 110M parametrów i często się myli.',
   'g-mini': 'G-Mini rozbija liczby na cyfry, więc przepisuje je wierniej niż G-Micro.',
 };
 
@@ -51,7 +51,7 @@ export async function mount(root, ctx) {
       <div class="chat__scroll" id="chat-scroll">
         <div class="chat__hero" id="chat-hero" data-enter>
           <h2 class="display chat__greeting">Hej, <span id="chat-name">Ty</span></h2>
-          <p class="chat__lede muted">Modele trenowane od zera w Gzowie. Odpowiada laptop w domu, więc czasem śpi.</p>
+          <p class="chat__lede muted">Modele trenowane od zera w Gzowie.</p>
         </div>
         <div class="chat__transcript" id="chat-transcript" role="log" aria-live="polite" aria-label="Rozmowa"></div>
       </div>
@@ -293,7 +293,7 @@ function syncComposer() {
   else if (!model.available) {
     reason = ui.ctx.bridge.online
       ? `${model.name} nie jest teraz publikowany przez Maca.`
-      : `${model.name} śpi — włącz Maca w domu.`;
+      : `${model.name} śpi - włącz Maca w domu.`;
   } else if (!allowance.ok) reason = allowance.reason;
 
   ui.block.hidden = !reason;
@@ -378,10 +378,14 @@ function renderPicker() {
 
   /* Exactly one option is reachable by Tab, and it is the current one — or the
      first, when the stored model is not on the Mac's list at all. */
-  const found = ui.models.findIndex((m) => m.id === ui.model);
+  /* Only models that can answer right now. A list of things you cannot pick is
+     a list of disappointments, and presence already says the Mac is asleep. The
+     current one stays regardless, so the menu never contradicts the button. */
+  const offered = ui.models.filter((m) => m.available || m.id === ui.model);
+  const found = offered.findIndex((m) => m.id === ui.model);
   const roving = found < 0 ? 0 : found;
 
-  $('#picker-menu', ui.root).innerHTML = ui.models.map((m, i) => `
+  $('#picker-menu', ui.root).innerHTML = offered.map((m, i) => `
     <li role="presentation">
       <button type="button" role="option" data-model="${esc(m.id)}"
               aria-selected="${m.id === ui.model}" tabindex="${i === roving ? '0' : '-1'}"

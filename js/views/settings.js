@@ -22,8 +22,7 @@ export async function mount(root, ctx) {
   root.innerHTML = `
     <div class="page">
       <header class="page__head" data-enter>
-        <span class="label">Ustawienia</span>
-        <h2 class="title">Jak to ma działać</h2>
+        <h2 class="title">Ustawienia</h2>
       </header>
 
       <section class="card setting" data-enter>
@@ -44,7 +43,7 @@ export async function mount(root, ctx) {
           <p class="muted">
             To konto istnieje tylko w tej przeglądarce. Wyczyszczenie danych strony albo
             wylogowanie kasuje je razem z historią rozmów. Przypięcie do Google zachowuje
-            wszystko, co już masz — te same rozmowy, ten sam plan.
+            wszystko, co już masz - te same rozmowy, ten sam plan.
           </p>
         </div>
         <div class="setting__actions">
@@ -103,7 +102,7 @@ export async function mount(root, ctx) {
     if (store.state.user?.isAnonymous) {
       confirmDestructive({
         title: 'Wyloguj gościa',
-        body: 'Konto gościa żyje tylko w tej przeglądarce — po wylogowaniu nie da się do niego wrócić. Znikną rozmowy, plan i zużycie.',
+        body: 'Konto gościa żyje tylko w tej przeglądarce - po wylogowaniu nie da się do niego wrócić. Znikną rozmowy, plan i zużycie.',
         word: 'wyloguj',
         action: async () => { await signOutNow(); ctx.go('account'); },
       });

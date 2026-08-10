@@ -17,7 +17,7 @@ export async function mount(root) {
         <span class="label">Video Studio</span>
         <h2 class="title">Jeszcze nie istnieje</h2>
         <p class="page__lede" id="video-note">
-          Nie ma modelu wideo — ani wytrenowanego, ani trenowanego, ani zaplanowanego na konkretny termin.
+          Nie ma modelu wideo - ani wytrenowanego, ani trenowanego, ani zaplanowanego na konkretny termin.
           Gdyby powstał, byłby czwarty w rodzinie G i robiłby krótkie ujęcia z jednego zdjęcia.
           Do tego czasu ten ekran pokazuje tylko kształt, jaki by miał.
         </p>

@@ -18,12 +18,46 @@
   color: var(--text);
   z-index: 100;
 }
-.boot__mark { color: var(--accent); animation: boot-breathe 2.4s var(--ease-settle) infinite; }
+
+/* The same plate the sign-in card wears, so the wait and the screen it hands
+   over to are visibly one thing rather than two loading states. */
+.boot__mark {
+  display: grid;
+  place-items: center;
+  width: 60px; height: 60px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  color: var(--accent);
+}
 .boot__text { letter-spacing: 0.22em; }
 
-@keyframes boot-breathe {
-  0%, 100% { opacity: 0.45; }
-  50% { opacity: 1; }
+/* A thread of river under the mark, filling and draining. It measures nothing —
+   and a progress bar that measures nothing is a lie, so this one is plainly a
+   pulse rather than a percentage. */
+.boot__thread {
+  width: 96px;
+  height: 2px;
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.boot__thread::after {
+  content: '';
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  animation: boot-flow 1.5s var(--ease-settle) infinite;
+}
+
+@keyframes boot-flow {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(360%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .boot__thread::after { animation: none; width: 100%; opacity: 0.5; }
 }
 
 /* ------------------------------------------------------------- screens -- */

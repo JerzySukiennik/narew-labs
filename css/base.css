@@ -14,6 +14,13 @@ html {
      interface rather than overflowing it. */
   font-size: 100%;
   -webkit-text-size-adjust: 100%;
+
+  /* Painted here as well as on body, and not by accident. `color-scheme: dark`
+     makes the browser paint the canvas pure black, and body's background only
+     reaches the canvas by propagation — which stops covering the moment body is
+     shorter than the viewport. That is what split the sign-in screen into two
+     different blacks. Setting it on the root removes the dependency. */
+  background: var(--bg);
 }
 
 body {

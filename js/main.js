@@ -267,6 +267,9 @@ let revealed = false;
 let appRevealed = false;
 
 async function boot() {
+  /* Opt-in annotation overlay; costs nothing unless ?annotate=1 is present. */
+  import('./annotate.js').then((m) => m.start()).catch(() => {});
+
   initSidebar();
   initTheme();
   initBridge();

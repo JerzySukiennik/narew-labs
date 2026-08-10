@@ -1,34 +1,95 @@
 /* Account gate, onboarding, usage, tiers, settings. */
 
 /* ------------------------------------------------------------------ gate -- */
+/*
+ * One card on an even field. The previous version scattered a mark, a headline,
+ * two buttons and a paragraph of fine print down the middle of an empty screen,
+ * so nothing framed anything and the fine print shouted as loudly as the title.
+ */
 
 .gate {
   display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: var(--sp-5);
+}
+
+.gate__card {
+  position: relative;
+  width: min(27rem, 100%);
+  display: grid;
   justify-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-7) var(--sp-6) var(--sp-6);
   text-align: center;
-  max-width: 34rem;
-  padding-top: var(--sp-8);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
 }
-.gate__mark { color: var(--accent); margin-bottom: var(--sp-5); }
-.gate__title { max-width: 14ch; }
-.gate__lede { margin-top: var(--sp-4); max-width: 44ch; }
-.gate__actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--sp-3);
-  margin-top: var(--sp-6);
+
+.gate__mark {
+  display: grid;
+  place-items: center;
+  width: 60px; height: 60px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  color: var(--accent);
 }
-.gate__fine { margin-top: var(--sp-6); font-size: var(--step--1); max-width: 40ch; }
+
+.gate__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  font-weight: 600;
+  letter-spacing: var(--track-title);
+}
+
+.gate__lede {
+  margin: calc(var(--sp-2) * -1) 0 0;
+  max-width: 34ch;
+  color: var(--text-muted);
+  font-size: var(--step--1);
+  line-height: 1.6;
+}
+
+.gate__actions { display: grid; gap: var(--sp-2); width: 100%; margin-top: var(--sp-2); }
+.gate__btn { width: 100%; }
+
+/* Fine print is fine print: readable, and visibly not the headline. */
+.gate__fine {
+  max-width: 36ch;
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
 .gate__error {
-  margin-top: var(--sp-4);
+  width: 100%;
   padding: var(--sp-3) var(--sp-4);
   border-radius: var(--r-md);
   border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--line));
   background: color-mix(in srgb, var(--warn) 10%, transparent);
   font-size: var(--step--1);
+  text-align: left;
 }
-.gate__error[hidden] { display: none; }
+
+/* The same river that marks the bridge inside the app, holding the foot of the
+   card — so the first screen is already part of the product. */
+.gate__river {
+  position: absolute;
+  inset: auto 0 0;
+  width: 100%;
+  height: 18px;
+  color: var(--accent);
+  opacity: 0.32;
+}
+
+@media (max-width: 480px) {
+  .gate__card { padding: var(--sp-6) var(--sp-5) var(--sp-5); }
+}
 
 .account__list { display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
 .account__list dd { margin: 0; font-size: var(--step-0); }

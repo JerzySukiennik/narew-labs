@@ -8,7 +8,7 @@
  */
 
 import * as store from '../store.js';
-import { IMAGE_MODELS } from '../bridge.js';
+import { IMAGE_MODELS, IMAGE_WIRE_MODEL } from '../bridge.js';
 import { $, $$, esc, toast, gsap, reduced } from '../ui.js';
 
 const PRESETS = [
@@ -293,7 +293,13 @@ function run() {
 
   /* One edit is roughly 35 s of work on the Mac, so the dead man's switch is
      generous — it exists to catch a Mac that died, not one that is busy. */
-  ui.active = ui.ctx.bridge.run({ model: ui.model, text: prompt, image: ui.image }, (out) => {
+  /* `ui.model` is which *version* the picker shows — g-image-2-1, g-image-1 and
+     so on. The wire protocol has one name for the image model, `g-images`, and
+     it is the only one the Mac routes on and the only one the database rules
+     accept; sending a version id instead was rejected outright with
+     PERMISSION_DENIED, before the Mac ever saw the job. The version stays a
+     local preference until there is more than one checkpoint to choose from. */
+  ui.active = ui.ctx.bridge.run({ model: IMAGE_WIRE_MODEL, text: prompt, image: ui.image }, (out) => {
     if (!ui) return;
     if (typeof out.progress === 'number') {
       fill.style.width = `${Math.round(out.progress * 100)}%`;

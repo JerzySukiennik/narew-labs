@@ -42,6 +42,7 @@ import argparse
 import json
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -70,8 +71,11 @@ class Failed(Exception):
 
 
 def post_json(url, payload=None, form=None):
+    # `import urllib.parse` used to sit inside this branch, which made `urllib`
+    # a local name for the whole function — so the `urllib.request` call below
+    # raised UnboundLocalError on the path that does not take the branch. The
+    # import belongs at module level with the others.
     if form is not None:
-        import urllib.parse
         data, ctype = urllib.parse.urlencode(form).encode(), "application/x-www-form-urlencoded"
     else:
         data, ctype = json.dumps(payload or {}).encode(), "application/json"

@@ -59,6 +59,16 @@ export const FALLBACK_MODELS = [
 ];
 
 /*
+ * The name the image model answers to on the wire, as opposed to the version
+ * names below. The Mac routes on this string and the database rules accept
+ * only it, `g-micro` and `g-mini` — a job carrying a version id is rejected
+ * with PERMISSION_DENIED before the Mac ever sees it. One checkpoint exists
+ * today, so version and protocol are not the same axis and should not share
+ * an identifier.
+ */
+export const IMAGE_WIRE_MODEL = 'g-images';
+
+/*
  * Image models, newest first. `legacy` keeps a version in the picker without
  * putting it in the way — superseded models stay reachable because a newer one
  * is not automatically better at everything, but the default should be the one

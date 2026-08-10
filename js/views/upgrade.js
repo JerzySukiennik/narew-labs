@@ -47,6 +47,18 @@ export function openAsOverlay(ctx) {
   mount(node, ctx);
 }
 
+/**
+ * Jump straight to the checkout for one tier.
+ *
+ * Onboarding uses this: picking a paid plan there has to pass through the same
+ * card-or-code gate as picking it anywhere else, or the first screen of the app
+ * would be the one place where a paid plan is free.
+ */
+export function openCheckout(tierId, ctx) {
+  context = ctx;
+  checkout(tierId, null);
+}
+
 export function unmount() {
   handlers.forEach(([t, ty, fn]) => t.removeEventListener(ty, fn));
   handlers = [];
@@ -189,7 +201,9 @@ function checkout(tierId, root) {
       closeOverlay();
       toast(`Masz teraz plan ${tier.name}.`, 'ok');
       context?.refreshShell();
-      render(root);
+      /* No root when the checkout was opened straight from onboarding — there
+         is no tier list behind it to redraw. */
+      if (root) render(root);
     } catch (err) {
       e.currentTarget.disabled = false;
       showError(node, `Nie udało się zmienić planu: ${err.message}`);
@@ -247,7 +261,7 @@ async function redeem(e, node, root) {
     context?.refreshShell();
     closeOverlay();
     toast(result.message, 'ok');
-    render(root);
+    if (root) render(root);
   }
 }
 

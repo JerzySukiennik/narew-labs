@@ -236,12 +236,12 @@ function showScreen(which) {
   $('#app').classList.toggle('hidden', which !== 'app');
 }
 
+/** Returns the tier picked during onboarding, or null if it did not run. */
 async function maybeOnboard() {
-  if (!store.needsOnboarding()) return false;
+  if (!store.needsOnboarding()) return null;
   const { showOnboarding } = await import('./views/onboarding.js');
   showScreen('onboard');
-  await showOnboarding($('#onboard-host'));
-  return true;
+  return showOnboarding($('#onboard-host'));
 }
 
 /* ------------------------------------------------------------------ boot -- */
@@ -303,7 +303,7 @@ async function boot() {
       return;
     }
 
-    await maybeOnboard();
+    const picked = await maybeOnboard();
     refreshShell();
     showScreen('app');
     if (!appRevealed) { appRevealed = true; revealShell(); }
@@ -311,6 +311,14 @@ async function boot() {
     current = null;                     // force a re-render across sign-in
     if (!location.hash) location.hash = '#/chat';
     await render();
+
+    /* A paid plan chosen during onboarding still has to be paid for. The
+       checkout opens over the app the person just landed in, so backing out
+       leaves them on the free plan rather than nowhere. */
+    if (picked && store.TIERS[picked]?.price) {
+      const { openCheckout } = await import('./views/upgrade.js');
+      openCheckout(picked, ctx);
+    }
   });
 
   /* If Firebase never answers — offline, blocked, misconfigured — the app still

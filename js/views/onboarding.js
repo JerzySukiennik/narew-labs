@@ -111,6 +111,9 @@ export function showOnboarding(root) {
         b.setAttribute('aria-pressed', String(b === btn));
         b.classList.toggle('is-on', b === btn);
       });
+      /* The button says where it goes: a paid plan leads to a checkout, not
+         straight into the app. */
+      if (step === 3) q('#ob-next').textContent = store.TIERS[pickedTier].price ? 'Dalej do płatności' : 'Gotowe';
     });
 
     q('#ob-back').addEventListener('click', () => show(step - 1));
@@ -133,8 +136,10 @@ export function showOnboarding(root) {
       btn.disabled = true;
       try {
         await store.completeOnboarding({ name: nameInput.value.trim(), interests: [...chosen] });
-        if (pickedTier !== 'plotka') await store.grantTier(pickedTier);
-        resolve();
+        /* The plan is only *chosen* here — it is handed back so the app can put
+           it through the same checkout as everywhere else. Granting it outright
+           would make onboarding the one screen where a paid tier costs nothing. */
+        resolve(pickedTier);
       } catch (e) {
         btn.disabled = false;
         toast(`Nie zapisałem: ${e.message}`, 'error', 6000);

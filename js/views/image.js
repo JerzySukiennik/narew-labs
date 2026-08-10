@@ -8,7 +8,7 @@
  */
 
 import * as store from '../store.js';
-import { IMAGE_MODELS, IMAGE_WIRE_MODEL } from '../bridge.js';
+import { IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from '../bridge.js';
 import { $, $$, esc, toast, gsap, reduced } from '../ui.js';
 
 const PRESETS = [
@@ -97,7 +97,7 @@ export async function mount(root, ctx) {
     root, ctx, image: null, busy: false, active: null, handlers: [],
     /* Remembered across visits: someone who deliberately picked an older
        version did so for a reason, and should not have to pick it again. */
-    model: localStorage.getItem('narew.imageModel') || IMAGE_MODELS[0].id,
+    model: localStorage.getItem('narew.imageModel') || DEFAULT_IMAGE_MODEL,
     subOpen: false,
   };
   renderPicker();
@@ -284,6 +284,14 @@ function run() {
   const prompt = $('#prompt', ui.root).value.trim();
   if (!prompt || !ui.image) return;
 
+  /* A planned version carries no wire name, so there is nothing to ask the Mac
+     for. Refuse here rather than sending a job the rules would bounce. */
+  const wire = currentImageModel().wire;
+  if (!wire) {
+    toast('Ta wersja modelu jeszcze nie istnieje — wybierz G-Image 1.');
+    return;
+  }
+
   ui.busy = true;
   syncState();
   const progress = $('#progress', ui.root);
@@ -299,7 +307,7 @@ function run() {
      accept; sending a version id instead was rejected outright with
      PERMISSION_DENIED, before the Mac ever saw the job. The version stays a
      local preference until there is more than one checkpoint to choose from. */
-  ui.active = ui.ctx.bridge.run({ model: IMAGE_WIRE_MODEL, text: prompt, image: ui.image }, (out) => {
+  ui.active = ui.ctx.bridge.run({ model: wire, text: prompt, image: ui.image }, (out) => {
     if (!ui) return;
     if (typeof out.progress === 'number') {
       fill.style.width = `${Math.round(out.progress * 100)}%`;
@@ -337,7 +345,11 @@ function models() {
   const live = ui.ctx.bridge.modelList();
   return IMAGE_MODELS.map((m) => ({
     ...m,
-    available: live.some((l) => l.id === m.id && l.available),
+    /* Match on the wire name, not the version id. Comparing version ids against
+       what the Mac publishes could never match — it announces `g-images`, never
+       `g-image-1` — so every version showed as asleep even with the bridge up.
+       A version with no wire name is planned and stays offline by definition. */
+    available: Boolean(m.wire) && live.some((l) => l.id === m.wire && l.available),
   }));
 }
 

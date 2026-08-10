@@ -74,11 +74,25 @@ export const IMAGE_WIRE_MODEL = 'g-images';
  * is not automatically better at everything, but the default should be the one
  * we would recommend.
  */
+/*
+ * `wire` is what the Mac is asked for, and its absence means the version does
+ * not exist yet — no checkpoint has been trained, so it can never be ready and
+ * must never be submitted. Only versions carrying a wire name can go online.
+ *
+ * Today every real version maps to the same wire name, because there is one
+ * checkpoint. When a second one is trained the Mac will publish a second id and
+ * this table gains a row; nothing else has to change.
+ */
 export const IMAGE_MODELS = [
-  { id: 'g-image-2-1', name: 'G-Image 2.1', desc: '98M · najnowszy', available: false },
-  { id: 'g-image-2', name: 'G-Image 2', desc: '70M · sprawdzony', available: false },
-  { id: 'g-image-1', name: 'G-Image 1', desc: '22M · pierwszy', available: false, legacy: true },
+  { id: 'g-image-2-1', name: 'G-Image 2.1', desc: '98M · planowany', available: false },
+  { id: 'g-image-2', name: 'G-Image 2', desc: '70M · planowany', available: false },
+  { id: 'g-image-1', name: 'G-Image 1', desc: '22M · pierwszy', available: false,
+    legacy: true, wire: IMAGE_WIRE_MODEL },
 ];
+
+/** The version the app should land on: newest one that actually exists. */
+export const DEFAULT_IMAGE_MODEL =
+  (IMAGE_MODELS.find((m) => m.wire) || IMAGE_MODELS[0]).id;
 
 export class MacBridge {
   constructor(client, { onPresence } = {}) {

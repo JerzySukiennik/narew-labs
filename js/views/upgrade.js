@@ -152,6 +152,8 @@ function checkout(tierId, root) {
         </div>
       </div>` : ''}
 
+      <p class="checkout__error" id="co-error" hidden></p>
+
       <div class="checkout__actions">
         <button class="btn btn--ghost" id="co-cancel">Anuluj</button>
         <button class="btn btn--primary" id="co-pay">${tier.price ? 'Zapłać' : 'Przełącz'}</button>
@@ -171,6 +173,16 @@ function checkout(tierId, root) {
 
   node.querySelector('#co-cancel').addEventListener('click', closeOverlay);
   node.querySelector('#co-pay').addEventListener('click', async (e) => {
+    /* A paid plan needs the card filled in before anything happens. The card is
+       a prop, but an empty prop is still empty: clicking through it and getting
+       the tier anyway would make the whole screen read as decoration. The other
+       way in is the promo code below, which is a real check against Firestore. */
+    const problem = tier.price ? cardProblem(node) : '';
+    if (problem) {
+      showError(node, problem);
+      return;
+    }
+    showError(node, '');
     e.currentTarget.disabled = true;
     try {
       await store.grantTier(tierId);
@@ -180,12 +192,36 @@ function checkout(tierId, root) {
       render(root);
     } catch (err) {
       e.currentTarget.disabled = false;
-      toast(`Nie udało się zmienić planu: ${err.message}`, 'error', 6000);
+      showError(node, `Nie udało się zmienić planu: ${err.message}`);
     }
   });
   node.querySelector('#promo-form').addEventListener('submit', (e) => redeem(e, node, root));
 
   overlay(node, { label: 'Podsumowanie zamówienia' });
+}
+
+/**
+ * What is wrong with the card, in the order a person fills it in — one message
+ * at a time, naming the field, rather than a generic "sprawdź dane".
+ */
+function cardProblem(node) {
+  const digits = (sel) => (node.querySelector(sel).value.match(/\d/g) || []).join('');
+  const number = digits('#co-card-number');
+  const exp = digits('#co-card-exp');
+  const cvv = digits('#co-card-cvv');
+
+  if (!number && !exp && !cvv) return 'Wpisz dane karty albo użyj kodu promocyjnego niżej.';
+  if (number.length < 16) return 'Numer karty ma 16 cyfr.';
+  if (exp.length < 4) return 'Data ważności to MM/RR.';
+  if (Number(exp.slice(0, 2)) < 1 || Number(exp.slice(0, 2)) > 12) return 'Miesiąc ważności musi być od 01 do 12.';
+  if (cvv.length < 3) return 'CVV ma trzy cyfry.';
+  return '';
+}
+
+function showError(node, message) {
+  const box = node.querySelector('#co-error');
+  box.textContent = message;
+  box.hidden = !message;
 }
 
 /* ---------------------------------------------------------------- promo -- */

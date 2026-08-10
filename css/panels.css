@@ -333,3 +333,13 @@
   text-align: center;
   margin-top: calc(var(--sp-2) * -1);
 }
+
+/* The checkout's own refusal, next to the button that caused it — a toast would
+   float away from the field the reader has to go back and fix. */
+.checkout__error {
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--line));
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  font-size: var(--step--1);
+}

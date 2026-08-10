@@ -87,12 +87,15 @@ export const IMAGE_MODELS = [
   { id: 'g-image-2-1', name: 'G-Image 2.1', desc: '98M · planowany', available: false },
   { id: 'g-image-2', name: 'G-Image 2', desc: '70M · aktualny', available: false,
     wire: IMAGE_WIRE_MODEL },
-  /* No wire name, and that is not an oversight. G-Images was rescaled to 70.5M
-     and retrained from scratch on 2026-08-02; the 22M weights no longer fit the
-     network the Mac builds, so this version cannot be served at all. Listing it
-     as choosable would hand back G-Image 2's output under the wrong name. */
-  { id: 'g-image-1', name: 'G-Image 1', desc: '22M · wycofany', available: false,
-    legacy: true },
+  /* Chosen deliberately by the owner, and given its OWN wire name rather than
+     the shared one. G-Images was rescaled to 70.5M and retrained from scratch on
+     2026-08-02, so the 22M weights no longer fit the network the Mac builds.
+     Routing this on `g-images` would quietly hand back G-Image 2's output under
+     the wrong name; routing it on `g-image-1` means it shows as asleep until the
+     Mac actually publishes that checkpoint, and never lies about whose output
+     you are looking at. */
+  { id: 'g-image-1', name: 'G-Image 1', desc: '22M · pierwsza wersja', available: false,
+    wire: 'g-image-1', legacy: true },
 ];
 
 /** The version the app should land on: newest one that actually exists. */

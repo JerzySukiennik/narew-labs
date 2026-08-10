@@ -214,3 +214,56 @@ a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset:
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================================================== polish == */
+/*
+ * A pass over things that were structurally fine and visually unresolved: the
+ * rhythm between a heading and its content, what a card does under the pointer,
+ * how an empty screen reads, and how a disabled control announces itself.
+ * Nothing here changes behaviour — it changes how much the interface looks like
+ * someone decided each value.
+ */
+
+/* Headings own the space beneath them rather than floating in the middle of a
+   gap owned by nobody. */
+.page__head { padding-bottom: var(--sp-2); }
+.page__head .title { margin-top: var(--sp-1); }
+.page__lede { line-height: 1.55; }
+.page--wide .page__lede { max-width: 58ch; }
+
+/* Cards lift very slightly on hover — enough to read as a surface you can act
+   on, not enough to bounce. Only cards that actually do something. */
+.card { transition: border-color var(--t-base) var(--ease-out), background var(--t-base) var(--ease-out); }
+
+/* A disabled control should look unavailable before it is clicked, and it
+   should not pretend to be hoverable. */
+button:disabled, .btn:disabled, [aria-disabled='true'] { cursor: not-allowed; }
+button:disabled:active, .btn:disabled:active { transform: none; }
+
+/* Section rhythm: every screen breathes on the same grid instead of each view
+   inventing its own gaps. */
+.page > section + section,
+.page > .card + .card { margin-top: var(--sp-5); }
+
+/* Links inside body copy get an underline that does not crowd the text. */
+.page__lede a, .muted a { text-underline-offset: 3px; }
+
+/* Empty states read as an invitation, not as a missing element. */
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-7) var(--sp-5);
+  text-align: center;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-lg);
+  color: var(--text-muted);
+}
+.empty__icon { color: var(--text-faint); }
+
+/* Selection and focus share the accent, so the interface has one voice for
+   "this is the thing you are touching". */
+:focus-visible { outline-offset: 3px; }
+
+/* Scrollbars only appear where something actually scrolls. */
+.view { scrollbar-gutter: stable; }

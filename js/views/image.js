@@ -53,14 +53,71 @@ const FLOWER = `
     <circle cx="60" cy="46" r="9" fill="#8a5a1e"/>
   </svg>`;
 
-/* Split down the middle: untouched on the left, treated on the right, so the
-   card carries the comparison rather than the caption. */
+/*
+ * Split down the middle: untouched on the left, treated on the right, so the
+ * card carries the comparison rather than the caption.
+ *
+ * Two sources, and which one is used is not a style choice. If
+ * `assets/previews/<wire>/<look>.jpg` exists, it is a real photograph that this
+ * exact checkpoint really edited (see tools/make-previews.py) and the card shows
+ * the model's own output. If it does not, the card falls back to a drawing that
+ * only suggests the direction — and says so underneath, because a drawing
+ * presented as model output would be the one lie this screen cannot afford.
+ */
 const shot = (look) => `
   <span class="shot" data-look="${look}">
     <span class="shot__half shot__half--before">${FLOWER}</span>
     <span class="shot__half shot__half--after">${FLOWER}<span class="shot__wash"></span></span>
     <span class="shot__seam"></span>
   </span>`;
+
+const realShot = (look, wire) => `
+  <span class="shot shot--real">
+    <span class="shot__half shot__half--before">
+      <img class="shot__art" src="assets/previews/base.jpg" alt="" loading="lazy">
+    </span>
+    <span class="shot__half shot__half--after">
+      <img class="shot__art" src="assets/previews/${wire}/${look}.jpg" alt="" loading="lazy">
+    </span>
+    <span class="shot__seam"></span>
+  </span>`;
+
+/**
+ * Whether this checkpoint has real previews on disk.
+ *
+ * One probe decides for the whole set: they are generated together, so if the
+ * first one is missing none of them are there. A failed load is the answer, not
+ * an error — the fallback is a legitimate state, not a fault.
+ */
+function probePreviews(wire) {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = `assets/previews/${wire}/${PRESETS[0].look}.jpg`;
+  });
+}
+
+/** Swap the drawn cards for real ones once we know they exist. */
+async function upgradePreviews() {
+  const wire = currentImageModel()?.wire;
+  const host = ui?.root;
+  if (!wire || !host) return;
+  const real = await probePreviews(wire);
+  if (!ui || ui.root !== host) return;          // the view went away while we asked
+  host.querySelectorAll('.preset').forEach((card, i) => {
+    const look = PRESETS[i]?.look;
+    if (!look) return;
+    card.querySelector('.shot')?.remove();
+    card.insertAdjacentHTML('afterbegin', real ? realShot(look, wire) : shot(look));
+  });
+  const note = host.querySelector('.presets__note');
+  if (note) {
+    note.textContent = real
+      ? `Prawdziwe zdjęcie przerobione przez ${currentImageModel().name} — po lewej oryginał, po prawej wynik.`
+      : 'Podglądy są rysunkiem poglądowym — pokazują kierunek przeróbki, nie wynik modelu.';
+  }
+}
 
 const MAX_IMAGE_CHARS = 400_000;
 
@@ -177,6 +234,7 @@ export async function mount(root, ctx) {
 
   wire();
   syncState();
+  upgradePreviews();
 }
 
 export function unmount() {
@@ -210,6 +268,9 @@ function wire() {
     localStorage.setItem('narew.imageModel', ui.model);
     togglePicker(false);
     renderPicker();
+    /* A different checkpoint edited different pictures. */
+    upgradePreviews();
+    syncState();
   });
   on(document, 'pointerdown', (e) => {
     const p = $('#picker', ui.root);

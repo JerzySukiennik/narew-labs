@@ -24,6 +24,19 @@ const MAX_IMAGE_CHARS = 400_000;
 
 let ui = null;
 
+/**
+ * The stored version, but only if it can still be served. A version that lost
+ * its wire name (retired when the model was rescaled) would otherwise stay
+ * selected forever and refuse every job.
+ */
+function rememberedModel() {
+  const saved = localStorage.getItem('narew.imageModel');
+  const known = IMAGE_MODELS.find((m) => m.id === saved);
+  if (known && known.wire) return saved;
+  if (saved) localStorage.removeItem('narew.imageModel');
+  return DEFAULT_IMAGE_MODEL;
+}
+
 export async function mount(root, ctx) {
   root.innerHTML = `
     <div class="page page--wide studio">
@@ -96,8 +109,10 @@ export async function mount(root, ctx) {
   ui = {
     root, ctx, image: null, busy: false, active: null, handlers: [],
     /* Remembered across visits: someone who deliberately picked an older
-       version did so for a reason, and should not have to pick it again. */
-    model: localStorage.getItem('narew.imageModel') || DEFAULT_IMAGE_MODEL,
+       version did so for a reason, and should not have to pick it again —
+       unless that version has since been withdrawn, in which case the
+       remembered choice would leave the screen permanently refusing to run. */
+    model: rememberedModel(),
     subOpen: false,
   };
   renderPicker();

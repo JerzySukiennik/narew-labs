@@ -27,7 +27,7 @@
 
         "out": {
           ".read": true,
-          ".write": "auth.uid === 'MAC_UID_PLACEHOLDER'"
+          ".write": "auth.uid === 'MAC_UID_PLACEHOLDER' || !newData.exists()"
         },
 
         "$other": { ".validate": "false" }

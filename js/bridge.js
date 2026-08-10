@@ -85,9 +85,14 @@ export const IMAGE_WIRE_MODEL = 'g-images';
  */
 export const IMAGE_MODELS = [
   { id: 'g-image-2-1', name: 'G-Image 2.1', desc: '98M · planowany', available: false },
-  { id: 'g-image-2', name: 'G-Image 2', desc: '70M · planowany', available: false },
-  { id: 'g-image-1', name: 'G-Image 1', desc: '22M · pierwszy', available: false,
-    legacy: true, wire: IMAGE_WIRE_MODEL },
+  { id: 'g-image-2', name: 'G-Image 2', desc: '70M · aktualny', available: false,
+    wire: IMAGE_WIRE_MODEL },
+  /* No wire name, and that is not an oversight. G-Images was rescaled to 70.5M
+     and retrained from scratch on 2026-08-02; the 22M weights no longer fit the
+     network the Mac builds, so this version cannot be served at all. Listing it
+     as choosable would hand back G-Image 2's output under the wrong name. */
+  { id: 'g-image-1', name: 'G-Image 1', desc: '22M · wycofany', available: false,
+    legacy: true },
 ];
 
 /** The version the app should land on: newest one that actually exists. */

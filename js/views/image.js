@@ -11,14 +11,56 @@ import * as store from '../store.js';
 import { IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from '../bridge.js';
 import { $, $$, esc, toast, gsap, reduced } from '../ui.js';
 
+/*
+ * Each preset carries a `look`: a CSS treatment applied to the sample flower so
+ * the card shows the change instead of describing it. The previews are drawn,
+ * not generated — no checkpoint has ever run — so they promise a direction, and
+ * the note under the row says exactly that rather than letting a drawing pass
+ * for model output.
+ */
 const PRESETS = [
-  { title: 'Czarno-białe', prompt: 'zrób to czarno-białe' },
-  { title: 'Ołówek', prompt: 'zamień na rysunek ołówkiem' },
-  { title: 'Zima', prompt: 'dodaj śnieg' },
-  { title: 'Stara fotografia', prompt: 'zrób to jak stara fotografia' },
-  { title: 'Rozjaśnij', prompt: 'rozjaśnij zdjęcie' },
-  { title: 'Zachód nad Narwią', prompt: 'zrób ciepłe światło zachodu' },
+  { title: 'Czarno-białe', prompt: 'zrób to czarno-białe', look: 'mono' },
+  { title: 'Ołówek', prompt: 'zamień na rysunek ołówkiem', look: 'pencil' },
+  { title: 'Zima', prompt: 'dodaj śnieg', look: 'winter' },
+  { title: 'Stara fotografia', prompt: 'zrób to jak stara fotografia', look: 'old' },
+  { title: 'Rozjaśnij', prompt: 'rozjaśnij zdjęcie', look: 'bright' },
+  { title: 'Zachód nad Narwią', prompt: 'zrób ciepłe światło zachodu', look: 'dusk' },
 ];
+
+/*
+ * One flower, drawn once and reused by every card.
+ *
+ * A photograph would have been easier and worse: it would need loading, it
+ * would not survive a theme change, and it would look like a stock asset in a
+ * product whose whole point is that everything in it was made here.
+ */
+const FLOWER = `
+  <svg viewBox="0 0 120 120" class="shot__art" aria-hidden="true">
+    <rect width="120" height="120" fill="#dfe7ea"/>
+    <circle cx="92" cy="26" r="13" fill="#f2e2bd"/>
+    <path d="M0 96c18-7 30-4 44 1s28 9 44 3 24-9 32-13v33H0z" fill="#8c9b5a"/>
+    <path d="M60 118V58" stroke="#6f7f45" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <path d="M60 92c-11-2-17-9-18-18 10-1 17 5 18 18Z" fill="#7d8f4e"/>
+    <path d="M60 78c10-2 16-9 17-17-10-1-16 5-17 17Z" fill="#8c9b5a"/>
+    <g>
+      <ellipse cx="60" cy="30" rx="11" ry="17" fill="#e0913a"/>
+      <ellipse cx="60" cy="30" rx="11" ry="17" fill="#e0913a" transform="rotate(60 60 46)"/>
+      <ellipse cx="60" cy="30" rx="11" ry="17" fill="#d8813a" transform="rotate(120 60 46)"/>
+      <ellipse cx="60" cy="30" rx="11" ry="17" fill="#e0913a" transform="rotate(180 60 46)"/>
+      <ellipse cx="60" cy="30" rx="11" ry="17" fill="#d8813a" transform="rotate(240 60 46)"/>
+      <ellipse cx="60" cy="30" rx="11" ry="17" fill="#e0913a" transform="rotate(300 60 46)"/>
+    </g>
+    <circle cx="60" cy="46" r="9" fill="#8a5a1e"/>
+  </svg>`;
+
+/* Split down the middle: untouched on the left, treated on the right, so the
+   card carries the comparison rather than the caption. */
+const shot = (look) => `
+  <span class="shot" data-look="${look}">
+    <span class="shot__half shot__half--before">${FLOWER}</span>
+    <span class="shot__half shot__half--after">${FLOWER}<span class="shot__wash"></span></span>
+    <span class="shot__seam"></span>
+  </span>`;
 
 const MAX_IMAGE_CHARS = 400_000;
 
@@ -40,62 +82,77 @@ function rememberedModel() {
 export async function mount(root, ctx) {
   root.innerHTML = `
     <div class="page page--wide studio">
-      <header class="page__head" data-enter>
-        <span class="label">Image Studio</span>
-        <h2 class="title">Przerabianie zdjęć</h2>
-        <p class="page__lede">Wgraj zdjęcie, powiedz, co zmienić. Robi to G-Images — model dyfuzyjny z tej samej rodziny, uruchamiany na Macu w domu.</p>
+      <header class="studio__head" data-enter>
+        <div>
+          <span class="label">Image Studio</span>
+          <h2 class="title">Przerabianie zdjęć</h2>
+        </div>
+        <!-- The version belongs to the screen, not to one button: it decides
+             what every edit here is answered by, so it sits with the title
+             rather than beside the action. -->
+        <div class="picker studio__picker" id="picker">
+          <button type="button" class="picker__button" id="picker-btn"
+                  aria-haspopup="listbox" aria-expanded="false">
+            <span class="picker__dot" id="picker-dot" data-state="offline"></span>
+            <span id="picker-name">G-Image 2</span>
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <ul class="picker__menu" id="picker-menu" role="listbox"
+              aria-label="Wersja modelu" hidden></ul>
+        </div>
       </header>
-
-      <div class="presets" data-enter role="list" aria-label="Gotowe przeróbki">
-        ${PRESETS.map((p) => `
-          <button type="button" class="preset" role="listitem" data-prompt="${esc(p.prompt)}">
-            <span class="preset__title">${esc(p.title)}</span>
-            <span class="preset__prompt muted">„${esc(p.prompt)}”</span>
-          </button>`).join('')}
-      </div>
 
       <p class="studio__state" id="studio-state" data-enter hidden></p>
 
-      <div class="studio__grid" data-enter>
-        <div class="drop" id="drop" tabindex="0" role="button" aria-label="Wgraj zdjęcie">
-          <input type="file" id="file" accept="image/*" class="sr-only">
-          <div class="drop__empty" id="drop-empty">
-            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
-            <p>Upuść zdjęcie albo kliknij</p>
-            <p class="muted">JPG lub PNG. Duże pliki zmniejszę sam.</p>
-          </div>
-          <img class="drop__img" id="drop-img" alt="Wgrane zdjęcie" hidden>
+      <section class="studio__step" data-enter>
+        <h3 class="studio__step-title"><span class="studio__step-n">1</span> Wybierz przeróbkę</h3>
+        <div class="presets" role="list" aria-label="Gotowe przeróbki">
+          ${PRESETS.map((p) => `
+            <button type="button" class="preset" role="listitem" data-prompt="${esc(p.prompt)}">
+              ${shot(p.look)}
+              <span class="preset__text">
+                <span class="preset__title">${esc(p.title)}</span>
+                <span class="preset__prompt muted">„${esc(p.prompt)}”</span>
+              </span>
+            </button>`).join('')}
         </div>
+        <p class="presets__note muted">
+          Podglądy są rysunkiem poglądowym — pokazują kierunek przeróbki, nie wynik modelu.
+        </p>
+      </section>
 
-        <div class="studio__panel">
-          <label class="label" for="prompt">Co mam zmienić</label>
-          <textarea class="field studio__prompt" id="prompt" rows="3" placeholder="np. zrób to czarno-białe"></textarea>
-
-          <div class="studio__progress" id="progress" hidden>
-            <div class="bar__track"><span class="bar__fill" id="progress-fill" style="width:0%"></span></div>
-            <p class="muted" id="progress-text">Pracuję…</p>
+      <section class="studio__step" data-enter>
+        <h3 class="studio__step-title"><span class="studio__step-n">2</span> Dodaj zdjęcie i uruchom</h3>
+        <div class="studio__grid">
+          <div class="drop" id="drop" tabindex="0" role="button" aria-label="Wgraj zdjęcie">
+            <input type="file" id="file" accept="image/*" class="sr-only">
+            <div class="drop__empty" id="drop-empty">
+              <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+              <p>Upuść zdjęcie albo kliknij</p>
+              <p class="muted">JPG lub PNG. Duże pliki zmniejszę sam.</p>
+            </div>
+            <img class="drop__img" id="drop-img" alt="Wgrane zdjęcie" hidden>
+            <button type="button" class="drop__swap" id="drop-swap" hidden>Zmień zdjęcie</button>
           </div>
 
-          <div class="picker studio__picker" id="picker">
-            <button type="button" class="picker__button" id="picker-btn"
-                    aria-haspopup="listbox" aria-expanded="false">
-              <span class="picker__dot" id="picker-dot" data-state="offline"></span>
-              <span id="picker-name">G-Image 2.1</span>
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
-                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                   aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-            </button>
-            <ul class="picker__menu" id="picker-menu" role="listbox"
-                aria-label="Wersja modelu" hidden></ul>
-          </div>
+          <div class="studio__panel">
+            <label class="label" for="prompt">Co mam zmienić</label>
+            <textarea class="field studio__prompt" id="prompt" rows="3" placeholder="np. zrób to czarno-białe"></textarea>
 
-          <button class="btn btn--accent studio__go" id="go">Przerób</button>
-          <p class="studio__hint muted" id="hint"></p>
+            <div class="studio__progress" id="progress" hidden>
+              <div class="bar__track"><span class="bar__fill" id="progress-fill" style="width:0%"></span></div>
+              <p class="muted" id="progress-text">Pracuję…</p>
+            </div>
+
+            <button class="btn btn--accent studio__go" id="go">Przerób</button>
+            <p class="studio__hint muted" id="hint"></p>
+          </div>
         </div>
-      </div>
+      </section>
 
       <figure class="studio__result" id="result" hidden data-enter>
-        <img id="result-img" alt="Wynik przeróbki">
         <figcaption class="studio__result-foot">
           <span class="label" id="result-label"></span>
           <span class="studio__result-actions">
@@ -103,6 +160,7 @@ export async function mount(root, ctx) {
             <button class="btn" id="result-reuse">Użyj jako wejścia</button>
           </span>
         </figcaption>
+        <img id="result-img" alt="Wynik przeróbki">
       </figure>
     </div>`;
 
@@ -190,6 +248,7 @@ function wire() {
 
   on($('#prompt', root), 'input', syncState);
   on($('#go', root), 'click', run);
+  on($('#drop-swap', root), 'click', (e) => { e.stopPropagation(); file.click(); });
   on($('#result-reuse', root), 'click', () => {
     const src = $('#result-img', root).src;
     setImage(src);
@@ -209,6 +268,11 @@ function wire() {
 function reasonBlocked() {
   if (!store.state.user) return 'Zaloguj się, żeby korzystać ze Studia.';
   if (!store.can.image()) return 'lock';
+  /* A version with no checkpoint can never answer, and that is true whether or
+     not the Mac is awake — so it is reported before presence, and reported at
+     all times rather than only once someone has pressed the button. */
+  const picked = currentImageModel();
+  if (!picked.wire) return unservableReason(picked);
   if (!ui.ctx.bridge.online) return 'Mac w domu śpi — Image Studio potrzebuje go do pracy.';
   if (!ui.ctx.bridge.isAvailable('g-images')) {
     return 'G-Images nie jest jeszcze wytrenowany — na razie istnieje jako specyfikacja i pipeline treningowy, więc Mac go nie publikuje.';
@@ -289,6 +353,7 @@ function setImage(url) {
   img.src = url || '';
   img.hidden = !url;
   $('#drop-empty', ui.root).hidden = Boolean(url);
+  $('#drop-swap', ui.root).hidden = !url;
   syncState();
 }
 
@@ -303,7 +368,7 @@ function run() {
      for. Refuse here rather than sending a job the rules would bounce. */
   const wire = currentImageModel().wire;
   if (!wire) {
-    toast('Ta wersja modelu jeszcze nie istnieje — wybierz G-Image 1.');
+    toast(unservableReason(currentImageModel()), 'error', 7000);
     return;
   }
 
@@ -353,6 +418,22 @@ function showResult(dataUrl, label) {
 }
 
 
+/**
+ * Why a version cannot run, and what to use instead.
+ *
+ * Two different absences look identical in the picker and are not the same
+ * thing: one version has not been built yet, another was built and no longer
+ * fits the network the Mac assembles. Naming the working version is the point —
+ * the old copy told people to pick the retired one.
+ */
+function unservableReason(model) {
+  const servable = IMAGE_MODELS.find((m) => m.wire);
+  const instead = servable ? ` Działa ${servable.name}.` : '';
+  return model.legacy
+    ? `${model.name} jest wycofany — jego wagi nie pasują już do sieci, którą składa Mac, więc nie da się go uruchomić.${instead}`
+    : `${model.name} jeszcze nie istnieje — nie ma wytrenowanego checkpointu.${instead}`;
+}
+
 /* ---------------------------------------------------------------- picker -- */
 
 /** Availability comes from the Mac's published list; the versions are ours. */
@@ -386,19 +467,27 @@ function renderPicker() {
   btn.textContent = current.name;
   $('#picker-dot', ui.root).dataset.state = current.available ? 'online' : 'offline';
 
-  const row = (m) => `
+  /* Three states, not two: ready, asleep, and cannot exist. The third one is
+     still listed — the family history is worth seeing — but it is not offered
+     as a choice, because choosing it only ever ends in a refusal. */
+  const row = (m) => {
+    const dead = !m.wire;
+    const state = dead ? (m.legacy ? 'wycofany' : 'planowany') : m.available ? 'gotowy' : 'śpi';
+    return `
     <li role="presentation">
       <button type="button" role="option" data-model="${esc(m.id)}"
-              aria-selected="${m.id === ui.model}"
-              class="picker__item ${m.id === ui.model ? 'is-current' : ''}">
-        <span class="picker__dot" data-state="${m.available ? 'online' : 'offline'}"></span>
+              aria-selected="${m.id === ui.model}" ${dead ? 'disabled aria-disabled="true"' : ''}
+              title="${dead ? esc(unservableReason(m)) : ''}"
+              class="picker__item ${m.id === ui.model ? 'is-current' : ''} ${dead ? 'is-dead' : ''}">
+        <span class="picker__dot" data-state="${dead ? 'dead' : m.available ? 'online' : 'offline'}"></span>
         <span class="picker__body">
           <span class="picker__title">${esc(m.name)}</span>
           <span class="picker__desc">${esc(m.desc || '')}</span>
         </span>
-        <span class="picker__state">${m.available ? 'gotowy' : 'śpi'}</span>
+        <span class="picker__state">${state}</span>
       </button>
     </li>`;
+  };
 
   const legacy = all.filter((m) => m.legacy);
   const sub = legacy.length ? `

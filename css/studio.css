@@ -169,3 +169,180 @@
     border-radius: 0;
   }
 }
+
+/* ------------------------------------------------------- preset previews -- */
+/*
+ * Each card shows the same flower twice, split down the middle: left as it
+ * arrived, right after the edit. A label can say "czarno-białe"; only the
+ * picture says what that will look like.
+ */
+
+.shot {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.shot__half { position: absolute; inset: 0; }
+.shot__half--after { clip-path: inset(0 0 0 50%); }
+.shot__art { width: 100%; height: 100%; display: block; object-fit: cover; }
+
+/* The seam is what makes it read as one image cut in half rather than two
+   pictures placed side by side. */
+.shot__seam {
+  position: absolute;
+  inset: 0 auto 0 50%;
+  width: 1px;
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+}
+
+/* A wash sits over the treated half for effects a filter alone cannot suggest —
+   snow, warm light, paper. */
+.shot__wash { position: absolute; inset: 0; }
+
+.shot[data-look='mono'] .shot__half--after .shot__art { filter: grayscale(1) contrast(1.06); }
+
+.shot[data-look='pencil'] .shot__half--after .shot__art {
+  filter: grayscale(1) contrast(1.75) brightness(1.22);
+}
+.shot[data-look='pencil'] .shot__wash {
+  background: repeating-linear-gradient(
+    52deg, transparent 0 3px, color-mix(in srgb, #2a2a27 22%, transparent) 3px 4px);
+  mix-blend-mode: multiply;
+}
+
+.shot[data-look='winter'] .shot__half--after .shot__art {
+  filter: saturate(0.45) brightness(1.16) hue-rotate(165deg);
+}
+.shot[data-look='winter'] .shot__wash {
+  background:
+    radial-gradient(circle at 22% 24%, #fff 0 1.6px, transparent 2px),
+    radial-gradient(circle at 68% 16%, #fff 0 1.9px, transparent 2.4px),
+    radial-gradient(circle at 44% 58%, #fff 0 1.5px, transparent 2px),
+    radial-gradient(circle at 82% 72%, #fff 0 1.8px, transparent 2.3px),
+    radial-gradient(circle at 32% 84%, #fff 0 1.4px, transparent 1.9px),
+    radial-gradient(circle at 60% 38%, #fff 0 1.3px, transparent 1.8px);
+}
+
+.shot[data-look='old'] .shot__half--after .shot__art {
+  filter: sepia(0.8) contrast(0.9) brightness(1.04) saturate(0.85);
+}
+.shot[data-look='old'] .shot__wash {
+  background: radial-gradient(ellipse at center, transparent 42%, rgba(60, 40, 18, 0.42) 100%);
+}
+
+.shot[data-look='bright'] .shot__half--after .shot__art {
+  filter: brightness(1.42) saturate(1.12);
+}
+
+.shot[data-look='dusk'] .shot__half--after .shot__art {
+  filter: sepia(0.32) saturate(1.5) hue-rotate(-16deg) brightness(1.04);
+}
+.shot[data-look='dusk'] .shot__wash {
+  background: linear-gradient(200deg,
+    color-mix(in srgb, var(--bursztyn) 44%, transparent),
+    transparent 62%);
+}
+
+.presets__note { margin: calc(var(--sp-3) * -1) 0 var(--sp-5); font-size: var(--step--1); }
+
+/* The card grows a picture, so it stops being a text chip. */
+.preset {
+  width: 13.5rem;
+  padding: var(--sp-2);
+  gap: var(--sp-2);
+}
+.preset__text { display: grid; gap: 1px; padding: 0 var(--sp-2) var(--sp-1); }
+.preset__title { font-size: var(--step-0); }
+.preset--ghost .shot { filter: grayscale(1); opacity: 0.5; }
+
+/* --------------------------------------------------------- dead versions -- */
+/* A version with no checkpoint is listed but not offered: it stays visible so
+   the family history reads, and unselectable so it cannot waste a click. */
+
+.picker__item.is-dead { opacity: 0.5; cursor: not-allowed; }
+.picker__item.is-dead:hover { background: none; }
+.picker__dot[data-state='dead'] {
+  background: none;
+  border: 1px solid var(--text-faint);
+  box-shadow: none;
+}
+
+/* ------------------------------------------------------------- structure -- */
+/*
+ * The screen is two steps, and says so. Before, it was a wall of controls in
+ * which the upload — the one thing nothing else works without — looked exactly
+ * as important as a prompt suggestion.
+ */
+
+.studio__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-6);
+}
+.studio__head .label { display: block; margin-bottom: var(--sp-2); }
+
+.studio__step { margin-bottom: var(--sp-7); }
+
+.studio__step-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-weight: 600;
+  letter-spacing: var(--track-title);
+}
+/* Numbered because the order is real: there is nothing to run until there is a
+   picture. Numbering that encodes nothing would be decoration. */
+.studio__step-n {
+  display: grid;
+  place-items: center;
+  width: 24px; height: 24px;
+  flex: none;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+/* The drop zone leads, because it gates everything after it. */
+.studio__grid { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+
+.drop { position: relative; min-height: 21rem; }
+.drop__swap {
+  position: absolute;
+  right: var(--sp-3);
+  bottom: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line-strong);
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--text);
+  font-size: var(--step--1);
+}
+.drop__swap:hover { background: var(--surface-3); }
+
+.studio__panel { align-content: start; }
+.studio__go { min-height: 46px; }
+
+/* The result is an arrival, so it gets a heading above it rather than a caption
+   underneath — you read what it is, then see it. */
+.studio__result { margin-top: var(--sp-6); }
+.studio__result-foot { margin-bottom: var(--sp-3); }
+
+@media (max-width: 860px) {
+  .studio__head { align-items: flex-start; }
+  .studio__grid { grid-template-columns: minmax(0, 1fr); }
+  .drop { min-height: 15rem; }
+}

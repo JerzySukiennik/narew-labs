@@ -2,3 +2,7 @@ firebase/database.rules.local.json
 __pycache__/
 *.pyc
 .DS_Store
+
+# Model weights are built by g-doodle, not authored here. Until the real
+# checkpoint exists these are test exports of an untrained model — never commit.
+models/*.onnx

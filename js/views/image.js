@@ -10,6 +10,7 @@
 import * as store from '../store.js';
 import { IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from '../bridge.js';
 import { $, $$, esc, toast, gsap, reduced } from '../ui.js';
+import { mountPanel, unmountPanel } from '../doodle-panel.js';
 
 /*
  * Each preset carries a `look`: a CSS treatment applied to the sample flower so
@@ -162,6 +163,11 @@ export async function mount(root, ctx) {
 
       <p class="studio__state" id="studio-state" data-enter hidden></p>
 
+      <!-- G-Doodle mounts itself here. It shares the screen but not the state
+           machine: it runs entirely in the browser and keeps working when the
+           Mac that answers everything else is asleep. -->
+      <div id="doodle-host"></div>
+
       <section class="studio__step" data-enter>
         <h3 class="studio__step-title"><span class="studio__step-n">1</span> Templates</h3>
         <div class="presets" role="list" aria-label="Gotowe przeróbki">
@@ -236,9 +242,11 @@ export async function mount(root, ctx) {
   wire();
   syncState();
   upgradePreviews();
+  mountPanel($('#doodle-host', root));
 }
 
 export function unmount() {
+  unmountPanel();
   ui?.handlers.forEach(([t, ty, fn]) => t.removeEventListener(ty, fn));
   /* Let go of the node without ending the job: cancelling calls back
      synchronously, which would toast "cancelled" at someone who is simply

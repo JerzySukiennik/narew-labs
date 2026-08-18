@@ -74,7 +74,7 @@ const shot = (look) => `
 const realShot = (look, wire) => `
   <span class="shot shot--real">
     <span class="shot__half shot__half--before">
-      <img class="shot__art" src="assets/previews/base.jpg" alt="" loading="lazy">
+      <img class="shot__art" src="assets/previews/base-shot.jpg" alt="" loading="lazy">
     </span>
     <span class="shot__half shot__half--after">
       <img class="shot__art" src="assets/previews/${wire}/${look}.jpg" alt="" loading="lazy">

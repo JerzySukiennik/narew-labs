@@ -115,6 +115,15 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
+  /* min-height: 0 is load-bearing, not defensive. A grid item defaults to
+     min-height: auto, so .main refuses to shrink below its content and grows
+     straight past .app's 100dvh — measured at 3056px inside a 1004px shell.
+     .view then inherits that full height, has nothing left to overflow, and the
+     page simply ends where the viewport does with no way to scroll. It only
+     shows up on views taller than the window, which is why Image Studio hit it
+     and Chat did not. The min-width: 0 beside it is the same fix on the other
+     axis, already present. */
+  min-height: 0;
   background: var(--bg);
 }
 

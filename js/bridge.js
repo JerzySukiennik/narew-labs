@@ -88,8 +88,13 @@ export const IMAGE_MODELS = [
      same budget, so it exists and gets a wire name. Its OWN name, like G-Image 1
      and for the same reason: 98.3M weights do not fit the 70.5M network, and
      sharing a wire name would hand back one model's output labelled as another. */
-  { id: 'g-image-2-1', name: 'G-Image 2.1', desc: '98M · najnowszy', available: false,
-    wire: 'g-image-2-1' },
+  /* No wire name, because there is no checkpoint. Every ckpt.pt under
+     G-Images/kaggle-run was read on 2026-08-18 and the largest is 70.5M — the
+     98.3M weights this row describes are not on the Mac, so it published
+     g-images and g-image-1 and never g-image-2-1. Giving it a wire anyway left
+     it permanently "asleep", which says "wake the Mac and it will work" about a
+     model the Mac has never had. Restore the wire the day the file lands. */
+  { id: 'g-image-2-1', name: 'G-Image 2.1', desc: '98M · nie ma checkpointu', available: false },
   /* Recommended, and not merely because it is older. Measured head to head at
      68000 steps each: G-Image 2 is better on the edits that have a ground truth
      (black_and_white error 24.3 vs 32.4, inverted 21.5 vs 40.4) and costs 864 ms

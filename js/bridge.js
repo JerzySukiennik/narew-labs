@@ -84,9 +84,20 @@ export const IMAGE_WIRE_MODEL = 'g-images';
  * this table gains a row; nothing else has to change.
  */
 export const IMAGE_MODELS = [
-  { id: 'g-image-2-1', name: 'G-Image 2.1', desc: '98M · planowany', available: false },
-  { id: 'g-image-2', name: 'G-Image 2', desc: '70M · aktualny', available: false,
-    wire: IMAGE_WIRE_MODEL },
+  /* Trained to 68000 steps on 2026-08-11 and evaluated against G-Image 2 at the
+     same budget, so it exists and gets a wire name. Its OWN name, like G-Image 1
+     and for the same reason: 98.3M weights do not fit the 70.5M network, and
+     sharing a wire name would hand back one model's output labelled as another. */
+  { id: 'g-image-2-1', name: 'G-Image 2.1', desc: '98M · najnowszy', available: false,
+    wire: 'g-image-2-1' },
+  /* Recommended, and not merely because it is older. Measured head to head at
+     68000 steps each: G-Image 2 is better on the edits that have a ground truth
+     (black_and_white error 24.3 vs 32.4, inverted 21.5 vs 40.4) and costs 864 ms
+     per forward pass against 2.1's 1314 ms. 2.1 wins on some object additions —
+     a recognizable balloon where 2 leaves a smudge — which is why it is offered,
+     not why it should be the default. */
+  { id: 'g-image-2', name: 'G-Image 2', desc: '70M · sprawdzony', available: false,
+    wire: IMAGE_WIRE_MODEL, recommended: true },
   /* Chosen deliberately by the owner, and given its OWN wire name rather than
      the shared one. G-Images was rescaled to 70.5M and retrained from scratch on
      2026-08-02, so the 22M weights no longer fit the network the Mac builds.
@@ -98,9 +109,17 @@ export const IMAGE_MODELS = [
     wire: 'g-image-1', legacy: true },
 ];
 
-/** The version the app should land on: newest one that actually exists. */
+/*
+ * The version the app should land on. This used to be "newest that exists",
+ * which was the same thing while only one existed. It stopped being the same
+ * thing on 2026-08-11: G-Image 2.1 is newer and measurably WORSE on the edits we
+ * can score, so landing on it by position would recommend the weaker model. The
+ * choice is explicit now, and falls back to newest-with-a-wire.
+ */
 export const DEFAULT_IMAGE_MODEL =
-  (IMAGE_MODELS.find((m) => m.wire) || IMAGE_MODELS[0]).id;
+  (IMAGE_MODELS.find((m) => m.recommended && m.wire)
+    || IMAGE_MODELS.find((m) => m.wire)
+    || IMAGE_MODELS[0]).id;
 
 export class MacBridge {
   constructor(client, { onPresence } = {}) {

@@ -8,7 +8,7 @@
 
 import { signOutNow } from '../firebase.js';
 import * as store from '../store.js';
-import { $, confirmDestructive, relativeTime } from '../ui.js';
+import { $, esc, confirmDestructive, relativeTime } from '../ui.js';
 
 let handlers = [];
 

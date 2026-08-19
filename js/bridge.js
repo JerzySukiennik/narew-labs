@@ -21,6 +21,25 @@ import {
   ref, push, set, remove, onValue, off,
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 
+/*
+ * Every job this page has posted and not yet seen finish.
+ *
+ * Kept so that closing the tab can take them back out of the queue. A job
+ * nobody is waiting for still costs the Mac minutes of work, and it used to
+ * outlive the page that asked for it: shut the laptop mid-edit and the picture
+ * was still rendered, ahead of whoever was actually waiting.
+ */
+const inFlight = new Set();
+
+/* pagehide rather than beforeunload: Safari on iOS never fires beforeunload
+   when an app is swiped away, and this is the one moment that matters most -
+   the phone leaves and nothing else will ever clean up after it. */
+addEventListener('pagehide', () => {
+  for (const drop of inFlight) {
+    try { drop(); } catch { /* the page is going away; nothing to report to */ }
+  }
+});
+
 /* Three missed 20 s beats. Long enough not to call it asleep over one hiccup. */
 const STALE_AFTER = 70_000;
 
@@ -228,6 +247,12 @@ export class MacBridge {
     let latest = '';
     let idle = null;
 
+    /* Take the job back out of the queue. The Mac watches for the removal and
+       forgets anything it has not started; a job already running is stopped by
+       the cancel flag beside it. */
+    const drop = () => { remove(jobRef); inFlight.delete(drop); };
+    inFlight.add(drop);
+
     /* Explicit, because `done` used to be the only path that ever detached. A
        cancelled or abandoned generation left a live onValue on the node for the
        rest of the session. */
@@ -242,6 +267,7 @@ export class MacBridge {
       settled = true;
       detach();
       remove(outRef);
+      inFlight.delete(drop);
       return true;
     };
 
@@ -281,7 +307,10 @@ export class MacBridge {
       id,
       /* For a view that goes away mid-generation: let go of the node without
          pretending the job ended. */
-      dispose: () => { settled = true; detach(); },
+      /* For a view that goes away mid-generation: let go of the node, and take
+         the job with it. Leaving it queued would render a picture into a screen
+         that no longer exists. */
+      dispose: () => { settled = true; detach(); drop(); },
       /**
        * Written into the job itself, because the Mac is already streaming that
        * node — a cancel lands mid-generation instead of waiting for a poll.
@@ -292,9 +321,18 @@ export class MacBridge {
        * still carries the real failure, so a caller can say so out loud.
        */
       cancel: () => {
+        /* The flag first, then the node. The flag is what stops a generation
+           already under way; removing the node is what keeps a job that never
+           started from being run later, and what stops a restarted bridge from
+           finding it again in the tree and answering a question nobody asked
+           any more. */
         const written = set(ref(rtdb, `${base}/jobs/${id}/cancel`), true);
         written.catch((e) => console.warn('Nie zapisałem anulowania:', e.message));
-        end(latest || 'Anulowane.');
+        written.finally(drop);
+        /* Whatever had arrived stays, and nothing is added. The person who
+           pressed stop knows they pressed stop; captioning it replaces a
+           half-answer they might want to keep with a word they already knew. */
+        end(latest);
         return written;
       },
     };

@@ -28,8 +28,8 @@ const TEMPLATE = `
       Napisz, a narysuję
     </h3>
     <p class="doodle__lede muted">
-      G-Doodle rysuje u Ciebie w przeglądarce — bez serwera i bez włączonego Maca.
-      Zna 345 rzeczy i mówi wprost, kiedy czegoś nie zna.
+      Rysuje kreska po kresce to, co nazwiesz. Zna 345 rzeczy i mówi wprost,
+      kiedy czegoś nie zna.
     </p>
 
     <div class="doodle__grid">

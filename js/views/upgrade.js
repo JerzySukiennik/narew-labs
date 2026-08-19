@@ -8,7 +8,7 @@
  */
 
 import * as store from '../store.js';
-import { $, $$, el, esc, fmt, toast, overlay, closeOverlay, copyText, gsap, reduced } from '../ui.js';
+import { $, $$, el, esc, fmt, toast, overlay, closeOverlay, confirmDestructive, copyText, gsap, reduced } from '../ui.js';
 
 /* One-stroke silhouettes. Drawn to scale against each other: the płotka is
    slight, the lin is deep-bodied, the sum is long and has barbels. */
@@ -104,6 +104,7 @@ function render(root) {
     </div>`;
 
   $$('[data-buy]', root).forEach((btn) => bind(btn, 'click', () => checkout(btn.dataset.buy, root)));
+  $$('[data-cancel]', root).forEach((btn) => bind(btn, 'click', () => cancelPlan(root)));
   bind($('#ref-btn', root), 'click', showReferral);
 
   if (!reduced()) {
@@ -125,11 +126,37 @@ function card(tier, current) {
         ${tier.perks.map((p) => `<li>${esc(p)}</li>`).join('')}
       </ul>
       ${isCurrent
-        ? '<p class="tier__badge">Twój plan</p>'
+        ? `<p class="tier__badge">Twój plan</p>${tier.price
+            ? '<button class="btn btn--ghost tier__cancel" data-cancel="1">Anuluj plan</button>'
+            : ''}`
         : cheaper
           ? `<button class="btn btn--ghost" data-buy="${esc(tier.id)}">Zejdź na ${esc(tier.name)}</button>`
           : `<button class="btn ${tier.id === 'sum' ? 'btn--accent' : 'btn--primary'}" data-buy="${esc(tier.id)}">Wybieram ${esc(tier.name)}</button>`}
     </article>`;
+}
+
+/**
+ * Leave a paid plan.
+ *
+ * Straight back to Płotka, and immediately - there is no billing period to see
+ * out, because there was never a payment. Pretending otherwise ("aktywny do
+ * końca okresu") would be the checkout's fiction leaking into a place that has
+ * no reason to keep it up. It asks first, because losing Image Studio by
+ * misclick would be a surprise.
+ */
+function cancelPlan(root) {
+  const now = store.activeTier();
+  confirmDestructive({
+    title: 'Anuluj plan',
+    body: `Wracasz na Płotkę od razu. Stracisz to, co daje ${now.name}, i nic nie jest zwracane - bo nic nie zostało pobrane.`,
+    word: 'anuluj',
+    action: async () => {
+      await store.grantTier('plotka');
+      context?.refreshShell();
+      toast('Plan anulowany. Jesteś na Płotce.', 'ok');
+      if (root) render(root);
+    },
+  });
 }
 
 /* ------------------------------------------------------------- checkout -- */

@@ -74,22 +74,19 @@
 
 /* ---------------------------------------------------------- sidebar usage -- */
 
-.sidebar-usage { display: grid; gap: var(--sp-2); padding: var(--sp-1) var(--sp-2) var(--sp-2); }
-.sidebar-usage__row { display: grid; gap: 3px; }
+.sidebar-usage { display: grid; gap: 5px; padding: 0 var(--sp-2) var(--sp-1); }
+.sidebar-usage__row { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--sp-2); }
+/* A two-character hint rather than a heading. The bar is the information; the
+   label only says which window it counts. */
 .sidebar-usage__label {
   font-family: var(--font-mono);
-  font-size: 0.62rem;
-  letter-spacing: var(--track-label);
+  font-size: 0.54rem;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-faint);
+  white-space: nowrap;
 }
-.sidebar-usage__track {
-  display: block;
-  height: 4px;
-  border-radius: var(--r-pill);
-  background: var(--surface-3);
-  overflow: hidden;
-}
+.sidebar-usage__track { display: block; height: 3px; border-radius: var(--r-pill); background: var(--surface-3); overflow: hidden; }
 .sidebar-usage__fill {
   display: block;
   height: 100%;

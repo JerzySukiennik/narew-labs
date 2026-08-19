@@ -75,8 +75,37 @@
 .msg__body ul { list-style: disc; }
 .msg__body ol { list-style: decimal; }
 
-/* A caret that keeps time while the Mac types, so a slow model reads as slow
-   rather than as broken. */
+/*
+ * Nine dots in a square, lighting and fading in turn.
+ *
+ * It replaces a blinking block, which read as a terminal waiting for input -
+ * exactly backwards, since the Mac is the one working and nobody is being asked
+ * to type. The grid drifts rather than marching in a line, so it says "busy"
+ * without suggesting progress it cannot measure.
+ */
+.thinking {
+  display: inline-grid;
+  grid-template-columns: repeat(3, 5px);
+  gap: 4px;
+  vertical-align: -2px;
+}
+.thinking i {
+  width: 5px; height: 5px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  opacity: 0.18;
+  animation: thinking 1.6s var(--ease-settle) infinite;
+  animation-delay: var(--d);
+}
+@keyframes thinking {
+  0%, 70%, 100% { opacity: 0.18; }
+  35% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thinking i { animation: none; opacity: 0.55; }
+}
+
+/* Kept for transcripts rendered before the loader existed. */
 .msg__cursor {
   display: inline-block;
   width: 0.5ch;
@@ -169,10 +198,10 @@
   box-shadow: var(--shadow-sm);
   transition: border-color var(--t-fast) var(--ease-out), box-shadow var(--t-base) var(--ease-out);
 }
-/* No ring while typing. The caret and the growing box already say where focus
-   is, and a border that lights up on every keystroke is noise. Keyboard users
-   still get the outline via :focus-visible on the textarea itself. */
-.composer__pill:focus-within { box-shadow: var(--shadow-md); }
+/* Nothing lights up while typing - no ring, no lift. The caret and the growing
+   box already say where focus is, and a pill that changes under every keystroke
+   is noise. Keyboard users still get the outline via :focus-visible on the
+   textarea itself. */
 
 .composer__plus,
 .composer__send {
@@ -285,11 +314,11 @@
 .picker__body { display: grid; flex: 1; min-width: 0; line-height: 1.3; }
 .picker__title { font-size: var(--step--1); font-weight: 500; }
 .picker__desc { font-size: 0.7rem; color: var(--text-faint); }
+/* Not mono. "gotowy" is a plain word about the model, not a machine reading
+   like a token count or an id, and setting it in the data face made it shout. */
 .picker__state {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-size: 0.68rem;
   color: var(--text-faint);
 }
 

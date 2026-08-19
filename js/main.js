@@ -273,10 +273,11 @@ export function refreshShell() {
   avatar.style.backgroundImage = photo ? `url(${photo})` : '';
   avatar.classList.toggle('has-photo', Boolean(photo));
 
-  /* Free plan does not see the doors it cannot open — Image and Video Studio
-     are simply absent from the list rather than shown locked. */
+  /* Free plan does not see the doors it cannot open: Image Studio is simply
+     absent from the list rather than shown locked. Video Studio has no entry at
+     all - there is no model behind it, so a greyed-out row was advertising a
+     screen whose only content is an apology. */
   $('[data-nav="image"]').closest('li').hidden = !store.can.image();
-  $('[data-nav="video"]').closest('li').hidden = !store.can.video();
 
   renderSidebarUsage();
 }
@@ -293,7 +294,7 @@ function renderSidebarUsage() {
     const level = !w.capped ? 'free' : pct >= 90 ? 'high' : pct >= 60 ? 'mid' : 'low';
     return `
       <div class="sidebar-usage__row" data-level="${level}" title="${w.label}: ${w.used.toLocaleString('pl')} / ${w.capped ? w.scale.toLocaleString('pl') : 'bez limitu'}">
-        <span class="sidebar-usage__label">${w.label}</span>
+        <span class="sidebar-usage__label">${w.key === 'fiveHour' ? '5h' : '7d'}</span>
         <span class="sidebar-usage__track"><span class="sidebar-usage__fill" style="width:${pct}%"></span></span>
       </div>`;
   }).join('');

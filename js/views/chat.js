@@ -20,6 +20,25 @@ const SUGGESTIONS = [
   'Wymień trzy zwierzęta.', 'Co to jest rower?',
 ];
 
+/**
+ * A greeting that knows what time it is.
+ *
+ * Only the clock, because only the clock is actually known here: the app has no
+ * location and no weather source, and inventing "ładny dzień" for someone
+ * sitting in the rain would be the same kind of lie the rest of this product
+ * refuses to tell. The hours are drawn where they change for a person rather
+ * than where a calendar puts them - 5 is still night, 22 is already late.
+ */
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 5) return 'Jeszcze nie śpisz';
+  if (h < 10) return 'Dzień dobry';
+  if (h < 13) return 'Cześć';
+  if (h < 18) return 'Dobre popołudnie';
+  if (h < 22) return 'Dobry wieczór';
+  return 'Późno już';
+}
+
 const MODEL_HINT = {
   'g-micro': 'G-Micro ma 110M parametrów i często się myli.',
   'g-mini': 'G-Mini rozbija liczby na cyfry, więc przepisuje je wierniej niż G-Micro.',
@@ -44,6 +63,13 @@ const MODEL_HINT = {
 const SILENCE_LIMIT = 90_000;
 const STOP_GRACE = 6_000;
 
+/* Nine dots lighting and fading in turn. A blinking block reads as a terminal
+   waiting for input, which is the opposite of what is happening: the Mac is
+   busy, and nobody is being asked to type. */
+const DOTS = `<span class="thinking" role="status" aria-label="Model pracuje">${
+  Array.from({ length: 9 }, (_, i) => `<i style="--d:${i * 90}ms"></i>`).join('')
+}</span>`;
+
 let ui = null;      // everything this view owns, so unmount can let go of it
 
 export async function mount(root, ctx) {
@@ -51,8 +77,7 @@ export async function mount(root, ctx) {
     <div class="chat">
       <div class="chat__scroll" id="chat-scroll">
         <div class="chat__hero" id="chat-hero" data-enter>
-          <h2 class="display chat__greeting">Hej, <span id="chat-name">Ty</span></h2>
-          <p class="chat__lede muted">Modele trenowane od zera w Gzowie.</p>
+          <h2 class="display chat__greeting"><span id="chat-greeting">Hej</span>, <span id="chat-name">Ty</span></h2>
         </div>
         <div class="chat__transcript" id="chat-transcript" role="log" aria-live="polite" aria-label="Rozmowa"></div>
       </div>
@@ -132,6 +157,7 @@ export async function mount(root, ctx) {
   };
 
   $('#chat-name', root).textContent = store.firstName();
+  $('#chat-greeting', root).textContent = greeting();
   fillSuggestions();
   renderPicker();
   wire();
@@ -521,7 +547,7 @@ function beginAssistant() {
   const node = el(`
     <article class="msg msg--model is-waiting">
       <div class="msg__who label">${esc(currentModel().name)}</div>
-      <div class="msg__body"><span class="msg__cursor"></span></div>
+      <div class="msg__body">${DOTS}</div>
     </article>`);
   ui.transcript.appendChild(node);
   scrollDown(true);

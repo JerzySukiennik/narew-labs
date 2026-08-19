@@ -422,3 +422,7 @@
 @media (max-width: 720px) {
   .tiers { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Leaving a plan sits on the card you are already on, quiet and full width so
+   it never competes with the plans you could move to. */
+.tier__cancel { width: 100%; margin-top: var(--sp-2); font-size: var(--step--1); min-height: 38px; }

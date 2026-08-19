@@ -122,6 +122,7 @@
 /* ------------------------------------------------ image model chooser -- */
 
 .studio__picker { margin-bottom: var(--sp-3); }
+.studio__head .studio__picker { margin-bottom: 0; }
 
 /* The menu drops DOWN here, unlike chat's, because this picker sits mid-panel
    with room below rather than pinned above a composer. */
@@ -277,9 +278,12 @@
  * as important as a prompt suggestion.
  */
 
+/* Title and version chooser sit on one line, centred against each other. They
+   were bottom-aligned, which put the picker below the cap height of the heading
+   and read as two things that had drifted apart rather than a pair. */
 .studio__head {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: var(--sp-4);
   flex-wrap: wrap;

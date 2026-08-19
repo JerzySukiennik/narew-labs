@@ -390,6 +390,15 @@
   letter-spacing: 0.04em;
   color: var(--text-muted);
 }
+/* The lede sat adrift: the title already carries a bottom margin and the
+   paragraph added its own default on top, opening a gap wide enough to read as
+   a missing element. It belongs directly under the heading it explains. */
+.doodle__lede {
+  margin: calc(-1 * var(--sp-2)) 0 var(--sp-5);
+  max-width: 52ch;
+  font-size: var(--step--1);
+}
+
 .doodle__grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

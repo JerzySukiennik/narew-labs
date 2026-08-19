@@ -380,7 +380,11 @@ function togglePicker(open) {
   const menu = $('#picker-menu', ui.root);
   const next = open ?? menu.hidden;
   btn.setAttribute('aria-expanded', String(next));
-  if (!next) { menu.hidden = true; return; }
+  if (!next) {
+    menu.hidden = true;
+    if (ui.pickerStale) renderPicker();     // catch up on what arrived while open
+    return;
+  }
   menu.hidden = false;
   /* The listbox takes focus so the arrow keys have somewhere to start; the
      roving tabindex set by renderPicker says where. */
@@ -432,7 +436,20 @@ function renderPicker() {
   const found = offered.findIndex((m) => m.id === ui.model);
   const roving = found < 0 ? 0 : found;
 
-  $('#picker-menu', ui.root).innerHTML = offered.map((m, i) => `
+  /* The Mac's heartbeat fires narew:presence about once a second, and this used
+     to rewrite the list every time - including while the menu was open, which
+     replaced the options under the pointer and threw away whatever had focus.
+     That was the flicker. Rebuild only when the list actually reads differently,
+     and never while it is open: the DOM the user is pointing at stays put, and
+     an update that arrives meanwhile is applied on the next open. */
+  const menu = $('#picker-menu', ui.root);
+  const signature = offered.map((m) => `${m.id}:${m.available}:${m.name}`).join('|') + `#${ui.model}`;
+  if (menu.dataset.signature === signature) return;
+  if (!menu.hidden) { ui.pickerStale = true; return; }
+  ui.pickerStale = false;
+  menu.dataset.signature = signature;
+
+  menu.innerHTML = offered.map((m, i) => `
     <li role="presentation">
       <button type="button" role="option" data-model="${esc(m.id)}"
               aria-selected="${m.id === ui.model}" tabindex="${i === roving ? '0' : '-1'}"

@@ -673,7 +673,19 @@ function renderPicker() {
       </ul>
     </li>` : '';
 
-  $('#picker-menu', ui.root).innerHTML = all.filter((m) => !m.legacy).map(row).join('') + sub;
+  /* Same rule as chat's picker: the Mac's heartbeat arrives about once a second
+     and must not rewrite an open menu. Here it also collapsed the "Starsze
+     wersje" submenu the moment it was expanded. Rebuild only on a real change,
+     and only while closed. */
+  const menu = $('#picker-menu', ui.root);
+  const signature = all.map((m) => `${m.id}:${m.available}:${!!m.wire}`).join('|')
+    + `#${ui.model}#${ui.subOpen}`;
+  if (menu.dataset.signature === signature) return;
+  if (!menu.hidden) { ui.pickerStale = true; return; }
+  ui.pickerStale = false;
+  menu.dataset.signature = signature;
+
+  menu.innerHTML = all.filter((m) => !m.legacy).map(row).join('') + sub;
 }
 
 function togglePicker(open) {
@@ -681,5 +693,8 @@ function togglePicker(open) {
   const next = open === undefined ? menu.hidden : open;
   menu.hidden = !next;
   $('#picker-btn', ui.root).setAttribute('aria-expanded', String(next));
-  if (!next) { ui.subOpen = false; renderPicker(); }
+  if (!next) { ui.subOpen = false; renderPicker(); return; }
+  /* The same entrance chat's picker has, so the two read as one control in two
+     places rather than two controls. */
+  enter(menu, { opacity: 0, y: -6, scale: 0.96, duration: 0.24 });
 }

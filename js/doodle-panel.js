@@ -27,10 +27,7 @@ const TEMPLATE = `
            and a lone "0" above nothing to follow reads as a numbering bug. -->
       Napisz, a narysuję
     </h3>
-    <p class="doodle__lede muted">
-      Rysuje kreska po kresce to, co nazwiesz. Zna 345 rzeczy i mówi wprost,
-      kiedy czegoś nie zna.
-    </p>
+    <p class="doodle__lede muted">Rysuje kreska po kresce to, co nazwiesz.</p>
 
     <div class="doodle__grid">
       <div class="doodle__stage">

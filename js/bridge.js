@@ -52,6 +52,14 @@ export function resolveClient(adopted) {
   return id;
 }
 
+/*
+ * The models Chat may offer. The Mac publishes one flat list of everything it
+ * can run — text and pictures together — and without this the image versions
+ * leaked into the conversation dropdown, where picking one would send a chat
+ * message to a model that only edits photographs.
+ */
+export const CHAT_MODELS = ['g-micro', 'g-mini'];
+
 /** What the app offers when the Mac has never said what it can run. */
 export const FALLBACK_MODELS = [
   { id: 'g-micro', name: 'G-Micro', desc: '110M · rozmowa', available: false },

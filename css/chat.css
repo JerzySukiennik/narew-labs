@@ -336,3 +336,30 @@
   .plus-panel { left: var(--sp-4); }
   .composer__hint { display: none; }
 }
+
+/* ---------------------------------------------------------------- reveal -- */
+/*
+ * Words arrive out of focus and settle. The answer is complete before any of
+ * this runs — the Mac's partial writes are collected rather than painted — so
+ * the pace is the app's own and identical on a loaded laptop and an idle one.
+ *
+ * Blur rather than a slide or a pop: text that sharpens stays readable the
+ * whole way through, while text that moves pulls the eye to the motion instead
+ * of the sentence.
+ */
+.msg__body .word-in {
+  display: inline-block;
+  animation: word-in 380ms var(--ease-out) both;
+  will-change: filter, opacity;
+}
+
+@keyframes word-in {
+  from { opacity: 0; filter: blur(6px); }
+  to { opacity: 1; filter: blur(0); }
+}
+
+/* The animation is the only thing reduced motion removes here; the text itself
+   is already on screen, so there is nothing to fall back to. */
+@media (prefers-reduced-motion: reduce) {
+  .msg__body .word-in { animation: none; opacity: 1; filter: none; }
+}

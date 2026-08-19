@@ -11,6 +11,7 @@
  */
 
 import * as store from '../store.js';
+import { CHAT_MODELS } from '../bridge.js';
 import { $, $$, el, esc, toast, overlayOpen, gsap, reduced } from '../ui.js';
 
 const SUGGESTIONS = [
@@ -121,7 +122,7 @@ export async function mount(root, ctx) {
     messages: [],
     convId: null,
     model: localStorage.getItem('narew.model') || 'g-micro',
-    models: ctx.bridge.modelList(),
+    models: chatModels(ctx.bridge),
     image: null,
     active: null,
     session: null,
@@ -167,6 +168,18 @@ function abandon(tellMac = true) {
   ui.active?.dispose?.();
   ui.active = null;
   ui.session = null;
+}
+
+/**
+ * The conversation models, and only those.
+ *
+ * The Mac announces everything it can run in one list — G-Images and its
+ * versions sit in it beside G-Micro — so without this filter the chat dropdown
+ * offered picture models, and choosing one sent a sentence to a network that
+ * only edits photographs.
+ */
+function chatModels(bridge) {
+  return bridge.modelList().filter((m) => CHAT_MODELS.includes(m.id));
 }
 
 const on = (target, type, fn, opts) => {
@@ -232,8 +245,8 @@ function wire() {
     if (!$('#picker', root).contains(e.target)) togglePicker(false);
   });
 
-  on(document, 'narew:presence', (e) => {
-    ui.models = e.detail.models;
+  on(document, 'narew:presence', () => {
+    ui.models = chatModels(ui.ctx.bridge);
     renderPicker();
     syncComposer();
   });
@@ -560,15 +573,20 @@ async function send() {
   const session = { node, body, prompt: text, shown: '', closed: false };
   ui.session = session;
 
+  /*
+   * The Mac's partial writes are collected, not painted.
+   *
+   * It streams the whole answer so far several times a second, and rendering
+   * each snapshot made the text stutter: words landed at the speed of a laptop
+   * under load, the paragraph reflowed on every write, and stopping mid-way
+   * left a half sentence. Holding the text until it is complete and then
+   * replaying it at a steady pace costs the same total wait and reads as one
+   * smooth arrival. The caret keeps the wait honest in the meantime.
+   */
   ui.active = ui.ctx.bridge.run({ model: ui.model, text, image, history: past }, (out) => {
     if (session.closed) return;
     armSilence(session);
-    if (typeof out.text === 'string' && out.text !== session.shown) {
-      session.shown = out.text;
-      node.classList.remove('is-waiting');
-      body.innerHTML = `${format(session.shown)}<span class="msg__cursor"></span>`;
-      scrollDown(false);
-    }
+    if (typeof out.text === 'string') session.shown = out.text;
     if (out.done) finish(session);
   });
 
@@ -597,7 +615,10 @@ function stop() {
   session.stopping = true;
   syncComposer();
   clearTimeout(ui.timers.stop);
-  ui.timers.stop = setTimeout(() => finish(session, 'Przerwane.'), STOP_GRACE);
+  /* No caption. Pressing stop is a decision the person just made, so telling
+     them it happened is telling them what they already know - and it left a
+     grey "Przerwane." glued under an answer they may well want to keep. */
+  ui.timers.stop = setTimeout(() => finish(session), STOP_GRACE);
 }
 
 /**
@@ -617,9 +638,10 @@ async function finish(session, note) {
   abandon(Boolean(note));    // closes the session, kills both timers, drops the job
   ui.generating = false;
   node.classList.remove('is-waiting');
-  body.innerHTML = answer ? format(answer) : `<p class="muted">${esc(note || 'Bez odpowiedzi.')}</p>`;
-  if (answer && note) body.appendChild(el(`<p class="msg__note">${esc(note)}</p>`));
   syncComposer();
+
+  if (answer) await reveal(body, answer);
+  else body.innerHTML = `<p class="muted">${esc(note || 'Bez odpowiedzi.')}</p>`;
 
   ui.messages.push({ role: 'assistant', text: answer });
 
@@ -638,6 +660,69 @@ async function finish(session, note) {
        conversation could quietly not exist. Say it out loud instead. */
     toast(`Nie zapisałem tej rozmowy: ${e.message}`, 'error', 6000);
   }
+}
+
+/**
+ * Play the finished answer in, word by word, each one arriving out of focus.
+ *
+ * The blur is doing real work rather than decorating: a word that fades from
+ * unreadable to readable is legible the whole way through, where one that slides
+ * or pops draws the eye to the movement instead of the sentence. The pace is
+ * fixed here rather than inherited from the Mac, so a laptop under load and an
+ * idle one read identically.
+ *
+ * Long answers speed up: 300 words at a comfortable 18 ms each would be five
+ * seconds of waiting for text that is already sitting in memory, so the step
+ * shrinks as the answer grows and the whole reveal stays under about a second
+ * and a half.
+ */
+function reveal(body, answer) {
+  body.innerHTML = format(answer);
+  const words = splitWords(body);
+  if (!words.length) return Promise.resolve();
+
+  /* Reduced motion means no reveal at all: the text is already there, and the
+     honest equivalent of a gentle animation is simply showing it. */
+  if (reduced()) return Promise.resolve();
+
+  const step = Math.max(6, Math.min(20, 1400 / words.length));
+  words.forEach((w, i) => {
+    w.style.animationDelay = `${Math.round(i * step)}ms`;
+    w.classList.add('word-in');
+  });
+
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      /* The classes come off once they have played, so a re-render of the
+         transcript later never replays an old animation. */
+      words.forEach((w) => w.replaceWith(...w.childNodes));
+      body.normalize();
+      resolve();
+    }, Math.round(words.length * step) + 420);
+  });
+}
+
+/** Wrap every word in the rendered answer, leaving the markup structure alone. */
+function splitWords(root) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const texts = [];
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) texts.push(n);
+
+  const spans = [];
+  for (const node of texts) {
+    const parts = node.textContent.split(/(\s+)/).filter((t) => t !== '');
+    if (!parts.length) continue;
+    const frag = document.createDocumentFragment();
+    for (const part of parts) {
+      if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(part)); continue; }
+      const span = document.createElement('span');
+      span.textContent = part;
+      frag.appendChild(span);
+      spans.push(span);
+    }
+    node.replaceWith(frag);
+  }
+  return spans;
 }
 
 /* ------------------------------------------------------------- persistence -- */
@@ -681,12 +766,25 @@ function leaveHero() {
 
   if (reduced()) { ui.hero.hidden = true; return Promise.resolve(); }
 
-  return new Promise((resolve) => {
+  const played = new Promise((resolve) => {
     gsap.timeline({ onComplete: resolve })
       .to(ui.hero, { opacity: 0, y: -18, duration: 0.32, ease: 'power2.in' })
       .set(ui.hero, { display: 'none' })
       .from(dock, { y: 10, duration: 0.34, ease: 'power3.out' }, '-=0.1');
   });
+
+  /* Never let the message wait on the animation.
+   *
+   * GSAP runs off requestAnimationFrame, which a browser pauses in a background
+   * tab - so sending and switching away meant onComplete never fired, the await
+   * below never returned, and the message was not drawn at all until the tab
+   * came back. The tween is still worth playing; it is just not allowed to be
+   * load-bearing. Whichever finishes first wins, and the hero is hidden either
+   * way so the transcript cannot open underneath it. */
+  return Promise.race([
+    played,
+    new Promise((resolve) => setTimeout(() => { ui.hero.hidden = true; resolve(); }, 700)),
+  ]);
 }
 
 function reset() {

@@ -84,34 +84,41 @@ export const IMAGE_WIRE_MODEL = 'g-images';
  * this table gains a row; nothing else has to change.
  */
 export const IMAGE_MODELS = [
-  /* Trained to 68000 steps on 2026-08-11 and evaluated against G-Image 2 at the
-     same budget, so it exists and gets a wire name. Its OWN name, like G-Image 1
-     and for the same reason: 98.3M weights do not fit the 70.5M network, and
-     sharing a wire name would hand back one model's output labelled as another. */
-  /* No wire name, because there is no checkpoint. Every ckpt.pt under
-     G-Images/kaggle-run was read on 2026-08-18 and the largest is 70.5M — the
-     98.3M weights this row describes are not on the Mac, so it published
-     g-images and g-image-1 and never g-image-2-1. Giving it a wire anyway left
-     it permanently "asleep", which says "wake the Mac and it will work" about a
-     model the Mac has never had. Restore the wire the day the file lands. */
-  { id: 'g-image-2-1', name: 'G-Image 2.1', desc: '98M · nie ma checkpointu', available: false },
-  /* Recommended, and not merely because it is older. Measured head to head at
-     68000 steps each: G-Image 2 is better on the edits that have a ground truth
-     (black_and_white error 24.3 vs 32.4, inverted 21.5 vs 40.4) and costs 864 ms
-     per forward pass against 2.1's 1314 ms. 2.1 wins on some object additions —
-     a recognizable balloon where 2 leaves a smudge — which is why it is offered,
-     not why it should be the default. */
-  { id: 'g-image-2', name: 'G-Image 2', desc: '70M · sprawdzony', available: false,
-    wire: IMAGE_WIRE_MODEL, recommended: true },
-  /* Chosen deliberately by the owner, and given its OWN wire name rather than
-     the shared one. G-Images was rescaled to 70.5M and retrained from scratch on
-     2026-08-02, so the 22M weights no longer fit the network the Mac builds.
-     Routing this on `g-images` would quietly hand back G-Image 2's output under
-     the wrong name; routing it on `g-image-1` means it shows as asleep until the
-     Mac actually publishes that checkpoint, and never lies about whose output
-     you are looking at. */
-  { id: 'g-image-1', name: 'G-Image 1', desc: '22M · pierwsza wersja', available: false,
-    wire: 'g-image-1', legacy: true },
+  /* The file landed on 2026-08-19, so the wire is restored exactly as the note
+     below prescribed. The 68000-step checkpoint was slimmed on Kaggle to the EMA
+     weights alone - 393 MB instead of 1573 MB, since the optimizer state only
+     matters for resuming training, which happens there and never here - then
+     registered in the bridge as its own version with base_channels 152.
+     Its OWN wire name, like G-Image 1 and for the same reason: 98.3M weights do
+     not fit the 70.5M network, so sharing a wire would hand back one model's
+     output labelled as another.
+     Previously, and correctly at the time: no wire, because every ckpt.pt under
+     G-Images/kaggle-run was read on 2026-08-18 and the largest was 70.5M. Giving
+     it a wire then left it permanently "asleep", which says "wake the Mac and it
+     will work" about a model the Mac had never had. */
+  { id: 'g-image-2-1', name: 'G-Image 2.1', desc: '98M · najnowszy', available: false,
+    wire: 'g-image-2-1' },
+
+  /* Bigger, and better at exactly one thing this screen does not do. Both
+     versions edited the same photo on 2026-08-19: G-Image 2 got black-and-white
+     right and answered the other four presets by pasting a hallucinated object
+     into an otherwise untouched frame - a coloured smudge in the reeds for
+     "pencil", the whole picture destroyed for "brighter". Its strength is object
+     addition, which is why it stays offered and no longer leads. */
+  { id: 'g-image-2', name: 'G-Image 2', desc: '70M · lepszy w dodawaniu obiektów',
+    available: false, wire: IMAGE_WIRE_MODEL },
+
+  /* Recommended, on measurement rather than on age. The templates here are
+     filters, and on filters the 22.4M network is plainly the better model: its
+     "pencil" reads as a drawing, its "sunset" as warm evening light, and where
+     it fails it restyles the whole scene instead of dropping junk into it. It is
+     also about 2.5x faster - two minutes an edit against five.
+     Its own wire name, not the shared one: 22.4M weights do not fit the 70.5M
+     network, so routing it on `g-images` would hand back G-Image 2's output
+     under the wrong name. Not `legacy` any more, because a version buried behind
+     "older versions" is a strange place to keep the default. */
+  { id: 'g-image-1', name: 'G-Image 1', desc: '22M · najlepszy w filtrach',
+    available: false, wire: 'g-image-1', recommended: true },
 ];
 
 /*

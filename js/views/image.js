@@ -10,6 +10,7 @@
 import * as store from '../store.js';
 import { IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from '../bridge.js';
 import { $, $$, esc, toast, gsap, reduced } from '../ui.js';
+import { mountPanel, unmountPanel } from '../doodle-panel.js';
 
 /*
  * Each preset carries a `look`: a CSS treatment applied to the sample flower so
@@ -83,18 +84,21 @@ const realShot = (look, wire) => `
   </span>`;
 
 /**
- * Whether this checkpoint has real previews on disk.
+ * Which of this checkpoint's previews exist on disk.
  *
- * One probe decides for the whole set: they are generated together, so if the
- * first one is missing none of them are there. A failed load is the answer, not
- * an error — the fallback is a legitimate state, not a fault.
+ * Asked per preset rather than once for the set, because the set is not
+ * all-or-nothing: "stara fotografia" maps to no trained edit type, so no model
+ * has ever produced one and no model ever will until it is trained. One probe
+ * for the whole row would have pointed that card at a file that is not there.
+ * A failed load is the answer, not an error - the drawn fallback is a
+ * legitimate state, not a fault.
  */
-function probePreviews(wire) {
+function probePreview(wire, look) {
   return new Promise((resolve) => {
     const img = new window.Image();
     img.onload = () => resolve(true);
     img.onerror = () => resolve(false);
-    img.src = `assets/previews/${wire}/${PRESETS[0].look}.jpg`;
+    img.src = `assets/previews/${wire}/${look}.jpg`;
   });
 }
 
@@ -103,19 +107,24 @@ async function upgradePreviews() {
   const wire = currentImageModel()?.wire;
   const host = ui?.root;
   if (!wire || !host) return;
-  const real = await probePreviews(wire);
+  const found = await Promise.all(PRESETS.map((p) => probePreview(wire, p.look)));
   if (!ui || ui.root !== host) return;          // the view went away while we asked
   host.querySelectorAll('.preset').forEach((card, i) => {
     const look = PRESETS[i]?.look;
     if (!look) return;
     card.querySelector('.shot')?.remove();
-    card.insertAdjacentHTML('afterbegin', real ? realShot(look, wire) : shot(look));
+    card.insertAdjacentHTML('afterbegin', found[i] ? realShot(look, wire) : shot(look));
+    card.classList.toggle('preset--drawn', !found[i]);
   });
+
+  const real = found.filter(Boolean).length;
   const note = host.querySelector('.presets__note');
   if (note) {
-    note.textContent = real
-      ? `Prawdziwe zdjęcie przerobione przez ${currentImageModel().name} - po lewej oryginał, po prawej wynik.`
-      : 'Podglądy są rysunkiem poglądowym - pokazują kierunek przeróbki, nie wynik modelu.';
+    note.textContent = real === 0
+      ? 'Podglądy są rysunkiem poglądowym - pokazują kierunek przeróbki, nie wynik modelu.'
+      : real === found.length
+        ? `Prawdziwe zdjęcie przerobione przez ${currentImageModel().name} - po lewej oryginał, po prawej wynik.`
+        : `Prawdziwe zdjęcie przerobione przez ${currentImageModel().name}. Karty bez wyniku to rysunek poglądowy - tej przeróbki model nie zna.`;
   }
 }
 
@@ -161,6 +170,11 @@ export async function mount(root, ctx) {
       </header>
 
       <p class="studio__state" id="studio-state" data-enter hidden></p>
+
+      <!-- G-Doodle mounts itself here. It shares the screen but not the state
+           machine: it runs entirely in the browser and keeps working when the
+           Mac that answers everything else is asleep. -->
+      <div id="doodle-host"></div>
 
       <section class="studio__step" data-enter>
         <h3 class="studio__step-title"><span class="studio__step-n">1</span> Templates</h3>
@@ -236,9 +250,11 @@ export async function mount(root, ctx) {
   wire();
   syncState();
   upgradePreviews();
+  mountPanel($('#doodle-host', root));
 }
 
 export function unmount() {
+  unmountPanel();
   ui?.handlers.forEach(([t, ty, fn]) => t.removeEventListener(ty, fn));
   /* Let go of the node without ending the job: cancelling calls back
      synchronously, which would toast "cancelled" at someone who is simply

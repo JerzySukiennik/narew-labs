@@ -369,3 +369,78 @@
 }
 .drop__clear svg { width: 14px; height: 14px; }
 .drop__clear:hover { background: var(--surface-3); }
+
+/* A card whose preview is a drawing rather than model output. Marked so the
+   note above the row is not the only thing distinguishing them. */
+.preset--drawn .shot::after {
+  content: 'poglądowe';
+  position: absolute;
+  right: 4px; bottom: 4px;
+  padding: 1px 6px;
+  border-radius: var(--r-pill);
+  background: var(--glass);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.doodle__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--sp-5);
+  align-items: start;
+}
+
+.doodle__stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg, 14px);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+/* The canvas inherits `color` so the stroke follows the theme without the
+   painter needing to know which theme is on. */
+.doodle__canvas {
+  width: 100%;
+  height: 100%;
+  color: var(--text);
+  touch-action: none;
+}
+
+.doodle__placeholder {
+  position: absolute;
+  pointer-events: none;
+  font-size: var(--step--1);
+}
+
+.doodle__panel { display: flex; flex-direction: column; gap: var(--sp-3); }
+
+.doodle__chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+
+.doodle__chip {
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: var(--step--1);
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.doodle__chip:hover { border-color: var(--accent-line); color: var(--accent); }
+
+.doodle__go { align-self: flex-start; }
+
+.doodle__status { min-height: 2.6em; font-size: var(--step--1); }
+.doodle__status[data-kind='ok'] { color: var(--accent); }
+.doodle__status[data-kind='warn'] { color: var(--text); }
+
+@media (max-width: 760px) {
+  .doodle__grid { grid-template-columns: minmax(0, 1fr); }
+}

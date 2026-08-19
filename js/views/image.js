@@ -250,7 +250,7 @@ export async function mount(root, ctx) {
   wire();
   syncState();
   upgradePreviews();
-  mountPanel($('#doodle-host', root));
+  mountPanel($('#doodle-host', root), ctx);
 }
 
 export function unmount() {

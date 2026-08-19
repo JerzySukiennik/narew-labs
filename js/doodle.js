@@ -98,18 +98,19 @@ export function load(onProgress) {
   if (loadPromise) return loadPromise;
   state.status = 'loading';
 
+  /* Metadata and the alias table only — about 37 KB between them. The 17 MB of
+     weights stay out of the browser entirely now that the Mac samples the model;
+     downloading them here bought a progress bar that read "17.3 / 14 MB" (Pages
+     reports the gzipped length) and a tab frozen by building the ONNX session on
+     the main thread. What is still needed locally is the alias table, so the
+     page can say "I read that as a cat" the instant you type, instead of after a
+     round trip. */
   loadPromise = (async () => {
-    const ort = await loadRuntime();
     meta = await fetchJSON(`${MODEL_DIR}g-doodle.meta.json`);
     prompts = await fetchJSON(`${MODEL_DIR}g-doodle.prompts.json`);
-    const bytes = await fetchModel(`${MODEL_DIR}g-doodle.int8.onnx`, onProgress);
-    state.bytes = bytes.length;
-    session = await ort.InferenceSession.create(bytes, {
-      executionProviders: ['wasm'],
-      graphOptimizationLevel: 'all',
-    });
+    onProgress?.(1, 1);
     state.status = 'ready';
-    return session;
+    return true;
   })().catch((err) => {
     loadPromise = null;
     /* A 404 is not a fault, it is the honest state of a model that has not

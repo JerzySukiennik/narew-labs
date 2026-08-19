@@ -97,7 +97,11 @@ function describeMiss(result) {
 
 async function run() {
   if (ui.busy) {
-    ui.abort?.abort();
+    ui.active?.cancel?.();
+    ui.busy = false;
+    ui.active = null;
+    $('#doodle-go', ui.host).textContent = 'Rysuj';
+    setStatus('Przerwane.');
     return;
   }
 
@@ -128,31 +132,50 @@ async function run() {
   ui.painter.clear();
 
   const started = performance.now();
-  try {
-    const points = await doodle.draw(resolved.category, {
-      signal: ui.abort.signal,
-      onPoint: (x, y, penDown) => ui.painter.add(x, y, penDown),
-    });
-    const seconds = (performance.now() - started) / 1000;
-    setStatus(ui.abort.signal.aborted
-      ? 'Przerwane.'
-      : `<b>${esc(resolved.label)}</b> — ${points.length} punktów w ${seconds.toFixed(1)} s, `
-        + 'policzone na Twoim urządzeniu.', 'ok');
-  } catch (err) {
-    setStatus(`Nie udało się narysować: ${esc(err.message)}`, 'warn');
-    toast('G-Doodle: rysowanie nie powiodło się', 'error');
-  } finally {
-    ui.busy = false;
-    ui.abort = null;
-    go.textContent = 'Rysuj';
-  }
+
+  /* Drawn on the Mac, not here. In the browser this meant a 17 MB int8 download
+     whose progress bar read "17.3 / 14 MB" — Pages reports the gzipped length
+     while the stream decompresses larger — and then a frozen tab, because
+     building the ONNX session blocks the main thread. The Mac samples the same
+     model in about five seconds and the page stays responsive.
+     Cost, stated plainly: this no longer works while the Mac sleeps, which had
+     been G-Doodle's one advantage over the other two models. */
+  ui.active = ui.ctx.bridge.run({ model: 'g-doodle', text }, (out) => {
+    if (!ui) return;
+
+    /* Every flush carries the whole drawing so far, not an append, so a dropped
+       or reordered update costs nothing. Repainting ~50 points is cheaper than
+       tracking which ones are new. */
+    if (Array.isArray(out.strokes)) {
+      ui.painter.clear();
+      for (const stroke of out.strokes) {
+        stroke.forEach(([x, y], i) => ui.painter.add(x, y, i > 0));
+      }
+      ui.points = out.strokes.reduce((n, st) => n + st.length, 0);
+    }
+
+    if (out.done) {
+      const seconds = (performance.now() - started) / 1000;
+      if (ui.points) {
+        setStatus(`<b>${esc(out.label || resolved.label)}</b> — ${ui.points} punktów `
+                  + `w ${seconds.toFixed(1)} s, narysowane na Macu.`, 'ok');
+      } else {
+        setStatus(esc(out.text || 'Mac nie zwrócił rysunku.'), 'warn');
+      }
+      ui.busy = false;
+      ui.active = null;
+      ui.points = 0;
+      go.textContent = 'Rysuj';
+    }
+  }, { idleTimeout: 120_000 });
 }
 
-export function mountPanel(host) {
+export function mountPanel(host, ctx) {
   host.innerHTML = TEMPLATE;
   ui = { host, busy: false, abort: null, handlers: [], painter: null };
 
   const canvas = $('#doodle-canvas', host);
+  ui.ctx = ctx;
   ui.painter = doodle.painter(canvas, { width: reduced() ? 3 : 3.2 });
 
   const on = (target, type, fn) => {

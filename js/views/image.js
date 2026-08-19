@@ -546,15 +546,25 @@ function currentImageModel() {
    and merely hidden: the panel keeps its canvas and the editor keeps a photo you
    already dropped, so flipping back and forth costs nothing. */
 function applyMode() {
+  /* renderPicker runs before ui exists on the first paint, so this has to
+     tolerate being called too early rather than throwing — a throw here would
+     abort the rest of the caller and leave the picker half-rendered. */
+  const host = ui?.root && $('#doodle-host', ui.root);
+  if (!host) return;
   const model = models().find((m) => m.id === ui.model);
   const drawing = Boolean(model?.draws);
-  $('#doodle-host', ui.root).hidden = !drawing;
+  host.hidden = !drawing;
   $$('.studio__step', ui.root).forEach((el) => { el.hidden = drawing; });
 }
 
 function renderPicker() {
   const all = models();
   const current = currentImageModel();
+  /* Called from here as well as from the click handler, because the picker also
+     re-renders when the Mac's model list arrives — and the layout has to follow
+     the selection on every one of those paths, not just the one where a human
+     clicked. */
+  applyMode();
   const btn = $('#picker-name', ui.root);
   if (!btn) return;
   btn.textContent = current.name;

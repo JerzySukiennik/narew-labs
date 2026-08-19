@@ -554,7 +554,13 @@ function applyMode() {
   const model = models().find((m) => m.id === ui.model);
   const drawing = Boolean(model?.draws);
   host.hidden = !drawing;
-  $$('.studio__step', ui.root).forEach((el) => { el.hidden = drawing; });
+  /* Scoped to the editor's own steps, not every .studio__step on the page. The
+     drawing panel is built as one too — it shares the heading and spacing — so
+     hiding the class wholesale hid the very thing being switched to, and picking
+     G-Doodle produced a blank screen. */
+  $$('.studio__step', ui.root)
+    .filter((el) => !host.contains(el))
+    .forEach((el) => { el.hidden = drawing; });
 }
 
 function renderPicker() {

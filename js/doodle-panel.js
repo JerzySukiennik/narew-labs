@@ -23,7 +23,9 @@ let ui = null;
 const TEMPLATE = `
   <section class="studio__step doodle" data-enter>
     <h3 class="studio__step-title">
-      <span class="studio__step-n">0</span> Napisz, a narysuję
+      <!-- No step number: this panel is the whole screen when G-Doodle is picked,
+           and a lone "0" above nothing to follow reads as a numbering bug. -->
+      Napisz, a narysuję
     </h3>
     <p class="doodle__lede muted">
       G-Doodle rysuje u Ciebie w przeglądarce — bez serwera i bez włączonego Maca.

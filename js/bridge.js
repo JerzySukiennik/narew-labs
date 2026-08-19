@@ -96,6 +96,13 @@ export const IMAGE_MODELS = [
      G-Images/kaggle-run was read on 2026-08-18 and the largest was 70.5M. Giving
      it a wire then left it permanently "asleep", which says "wake the Mac and it
      will work" about a model the Mac had never had. */
+  /* Not an editor at all: it takes no photo and returns strokes, so picking it
+     swaps the whole screen rather than changing which model answers. It sits in
+     the same chooser anyway because that is where someone looks to ask "what can
+     this page do", and a second picker for one model would be worse. */
+  { id: 'g-doodle', name: 'G-Doodle', desc: 'rysuje z tekstu', available: false,
+    wire: 'g-doodle', draws: true },
+
   { id: 'g-image-2-1', name: 'G-Image 2.1', desc: '98M · najnowszy', available: false,
     wire: 'g-image-2-1' },
 

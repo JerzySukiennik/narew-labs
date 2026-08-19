@@ -251,6 +251,7 @@ export async function mount(root, ctx) {
   syncState();
   upgradePreviews();
   mountPanel($('#doodle-host', root), ctx);
+  applyMode();
 }
 
 export function unmount() {
@@ -287,6 +288,7 @@ function wire() {
     renderPicker();
     /* A different checkpoint edited different pictures. */
     upgradePreviews();
+    applyMode();
     syncState();
   });
   on(document, 'pointerdown', (e) => {
@@ -538,6 +540,18 @@ function currentImageModel() {
  * "Starsze wersje". A newer model is not automatically better at every edit, so
  * the old ones stay reachable — just not in the way of the recommended choice.
  */
+/* G-Doodle is not a different model answering the same screen — it takes no
+   photo and returns strokes — so selecting it swaps what the screen IS, rather
+   than leaving an upload box that nothing will read. Everything stays mounted
+   and merely hidden: the panel keeps its canvas and the editor keeps a photo you
+   already dropped, so flipping back and forth costs nothing. */
+function applyMode() {
+  const model = models().find((m) => m.id === ui.model);
+  const drawing = Boolean(model?.draws);
+  $('#doodle-host', ui.root).hidden = !drawing;
+  $$('.studio__step', ui.root).forEach((el) => { el.hidden = drawing; });
+}
+
 function renderPicker() {
   const all = models();
   const current = currentImageModel();

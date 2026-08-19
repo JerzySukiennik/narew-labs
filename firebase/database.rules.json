@@ -15,7 +15,7 @@
           ".read": "auth.uid === 'MAC_UID_PLACEHOLDER'",
           ".write": true,
           "$job": {
-            "model": { ".validate": "newData.val() == 'g-micro' || newData.val() == 'g-mini' || newData.val() == 'g-images' || newData.val() == 'g-image-1'" },
+            "model": { ".validate": "newData.val() == 'g-micro' || newData.val() == 'g-mini' || newData.val() == 'g-images' || newData.val() == 'g-image-1' || newData.val() == 'g-image-2-1' || newData.val() == 'g-doodle'" },
             "text": { ".validate": "newData.isString() && newData.val().length <= 2000" },
             "image": { ".validate": "newData.isString() && newData.val().length <= 400000" },
             "at": { ".validate": "newData.isNumber()" },

@@ -15,7 +15,7 @@ import {
 } from './firebase.js';
 import { MacBridge, resolveClient } from './bridge.js';
 import * as store from './store.js';
-import { $, $$, toast, enterView, gsap, reduced, closeOverlay } from './ui.js';
+import { $, $$, toast, enterView, gsap, reduced, closeOverlay, enter } from './ui.js';
 
 /* ------------------------------------------------------------- referral -- */
 /* `/r/<uid>` is served by 404.html, which rewrites it to `/?ref=<uid>`. The id
@@ -332,9 +332,7 @@ function revealShell() {
      a drawer held off-screen by a CSS transform, and an inline transform left
      behind by the tween outranks it — which parked the drawer open on every
      phone until the first toggle. */
-  gsap.from('#sidebar', {
-    x: -12, opacity: 0, duration: 0.5, ease: 'power3.out', clearProps: 'transform,opacity',
-  });
+  enter('#sidebar', { x: -12, opacity: 0, duration: 0.5 });
 }
 
 let revealed = false;

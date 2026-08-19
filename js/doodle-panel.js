@@ -78,7 +78,7 @@ async function ensureModel() {
     return true;
   } catch (err) {
     if (doodle.state.status === 'missing') {
-      setStatus('Model jeszcze się uczy — wagi nie są jeszcze na serwerze. '
+      setStatus('Model jeszcze się uczy - wagi nie są jeszcze na serwerze. '
                 + 'Nic tu nie udaje rysowania.', 'warn');
     } else {
       setStatus(`Nie udało się wczytać modelu: ${esc(err.message)}`, 'warn');
@@ -159,7 +159,7 @@ async function run() {
     if (out.done) {
       const seconds = (performance.now() - started) / 1000;
       if (ui.points) {
-        setStatus(`<b>${esc(out.label || resolved.label)}</b> — ${ui.points} punktów `
+        setStatus(`<b>${esc(out.label || resolved.label)}</b> - ${ui.points} punktów `
                   + `w ${seconds.toFixed(1)} s, narysowane na Macu.`, 'ok');
       } else {
         setStatus(esc(out.text || 'Mac nie zwrócił rysunku.'), 'warn');
@@ -200,7 +200,7 @@ export function mountPanel(host, ctx) {
   on(window, 'resize', () => ui.painter.repaint());
 
   if (doodle.state.status === 'missing') {
-    setStatus('Model jeszcze się uczy — wagi nie są jeszcze na serwerze.', 'warn');
+    setStatus('Model jeszcze się uczy - wagi nie są jeszcze na serwerze.', 'warn');
   }
 }
 

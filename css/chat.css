@@ -328,7 +328,7 @@
   .chat__transcript { padding: var(--sp-4) var(--sp-4) var(--sp-5); }
   .composer-dock { padding: var(--sp-2) var(--sp-4) calc(var(--sp-3) + env(safe-area-inset-bottom)); }
   .chat__hero { min-height: 38vh; padding: var(--sp-6) var(--sp-4) var(--sp-4); }
-  
+}
 /* ---------------------------------------------------------------- reveal -- */
 /*
  * Words arrive out of focus and settle. The answer is complete before any of

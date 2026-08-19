@@ -108,6 +108,29 @@ await Promise.race([loadGsap, new Promise((r) => setTimeout(r, 2500))]);
 
 /* ----------------------------------------------------------------- toast -- */
 
+
+/**
+ * An entrance animation that cannot leave anything invisible.
+ *
+ * `gsap.from()` writes the start state to the element and depends on the next
+ * frame to walk it back. A hidden tab does not paint frames: rAF stops, the
+ * tween never ticks, and the element keeps the start state - opacity 0 - while
+ * being focusable and clickable. That is how a checkout can end up invisible
+ * but live, and how the model picker ended up open at opacity 0.
+ *
+ * So: never touch the element unless a frame is actually coming, and when one
+ * is, animate to an explicit end state and drop the inline styles afterwards
+ * so an interrupted tween still lands somewhere legible.
+ */
+export function enter(target, vars = {}) {
+  if (reduced() || document.hidden || typeof gsap === 'undefined') return null;
+  const { duration = 0.35, ease = 'power3.out', stagger, ...from } = vars;
+  const to = Object.fromEntries(Object.keys(from).map((k) => [k, k === 'opacity' ? 1 : 0]));
+  return gsap.fromTo(target, from, {
+    ...to, duration, ease, stagger, clearProps: Object.keys(from).join(','),
+  });
+}
+
 export function toast(message, kind = 'info', ms = 3600) {
   const host = $('#toasts');
   if (!host) return;
@@ -117,7 +140,7 @@ export function toast(message, kind = 'info', ms = 3600) {
   if (reduced()) {
     gsap.set(node, { opacity: 1 });
   } else {
-    gsap.from(node, { y: 12, opacity: 0, duration: 0.3 });
+    enter(node, { y: 12, opacity: 0, duration: 0.3 });
   }
 
   setTimeout(() => {
@@ -171,8 +194,8 @@ export function overlay(node, { dismissible = true, onClose, label = 'Okno' } = 
   } else {
     /* The surface materialises — scale and blur together — rather than fading
        in flat, so it reads as something arriving rather than appearing. */
-    gsap.from(shell.querySelector('.overlay__scrim'), { opacity: 0, duration: 0.25 });
-    gsap.from(panel, { opacity: 0, y: 18, scale: 0.97, duration: 0.42, ease: 'power3.out' });
+    enter(shell.querySelector('.overlay__scrim'), { opacity: 0, duration: 0.25 });
+    enter(panel, { opacity: 0, y: 18, scale: 0.97, duration: 0.42 });
   }
 
   const close = () => closeOverlay();

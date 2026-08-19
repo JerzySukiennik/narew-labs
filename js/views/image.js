@@ -9,7 +9,7 @@
 
 import * as store from '../store.js';
 import { IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from '../bridge.js';
-import { $, $$, esc, toast, gsap, reduced } from '../ui.js';
+import { $, $$, esc, toast, reduced, enter } from '../ui.js';
 import { mountPanel, unmountPanel } from '../doodle-panel.js';
 
 /*
@@ -19,6 +19,29 @@ import { mountPanel, unmountPanel } from '../doodle-panel.js';
  * the note under the row says exactly that rather than letting a drawing pass
  * for model output.
  */
+
+/**
+ * Everything G-Images can actually do, in its own words.
+ *
+ * The model does not read sentences. It was trained on a closed set of edit
+ * types and matches typed text against their names, so "dodaj gnoma" is not a
+ * hard request - it is a request in a language the model does not have. No
+ * prompt phrasing fixes that; only training a model that generates freely
+ * would, which is a different model. So the honest thing is to put the whole
+ * vocabulary on screen before anything is typed, as buttons: the limit stops
+ * being a rejection after the click and becomes a menu before it.
+ *
+ * Mirrors LABELS in AIe/G-Micro/runtime/images.py. The server stays the
+ * authority - it answers with this same list when a prompt misses.
+ */
+const VOCAB = [
+  'czarno-białe', 'sepia', 'jaśniej', 'ciemniej', 'mocniejsze kolory',
+  'słabsze kolory', 'rozmyte tło', 'wyostrzenie', 'cieplejsze barwy',
+  'chłodniejsze barwy', 'negatyw', 'większy kontrast', 'mniejszy kontrast',
+  'obraz olejny', 'deszcz', 'śnieg', 'kreskówka', 'pustynia', 'ogień', 'noc',
+  'zachód słońca', 'kosmos', 'szkic ołówkiem',
+];
+
 const PRESETS = [
   { title: 'Czarno-białe', prompt: 'zrób to czarno-białe', look: 'mono' },
   { title: 'Ołówek', prompt: 'zamień na rysunek ołówkiem', look: 'pencil' },
@@ -220,6 +243,18 @@ export async function mount(root, ctx) {
 
             <button class="btn btn--accent studio__go" id="go">Przerób</button>
             <p class="studio__hint muted" id="hint"></p>
+
+            <div class="studio__said" id="studio-said" hidden>
+              <p id="studio-said-text"></p>
+              <button type="button" class="btn btn--ghost" id="studio-said-close">Rozumiem</button>
+            </div>
+
+            <details class="vocab">
+              <summary class="label">Co model umie (${VOCAB.length})</summary>
+              <div class="vocab__list">
+                ${VOCAB.map((v) => `<button type="button" class="vocab__chip" data-vocab="${esc(v)}">${esc(v)}</button>`).join('')}
+              </div>
+            </details>
           </div>
         </div>
       </section>
@@ -336,6 +371,18 @@ function wire() {
     $('#result', root).hidden = true;
   });
 
+  on($('#studio-said-close', root), 'click', () => { $('#studio-said', root).hidden = true; });
+  on(root, 'click', (e) => {
+    const chip = e.target.closest('[data-vocab]');
+    if (!chip) return;
+    const box = $('#prompt', root);
+    /* The label alone, not "zrób to ${label}" - that reads as broken Polish for
+       half the list ("zrób to kreskówka") and the model matches on the label
+       either way. */
+    box.value = chip.dataset.vocab;
+    box.focus();
+    $('#studio-said', root).hidden = true;
+  });
   on(document, 'narew:presence', syncState);
 }
 
@@ -386,6 +433,15 @@ function syncState() {
     ? ''
     : !$('#prompt', root).value.trim() && ui.image ? 'Napisz, co zmienić albo wybierz template u góry.'
     : '';
+}
+
+/** Show what the model said, and keep it on screen until it is dismissed. */
+function said(text) {
+  if (!ui) return;
+  const box = $('#studio-said', ui.root);
+  $('#studio-said-text', ui.root).textContent = text;
+  box.hidden = false;
+  box.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'nearest' });
 }
 
 /* ---------------------------------------------------------------- upload -- */
@@ -454,6 +510,7 @@ function run() {
   }
 
   ui.busy = true;
+  $('#studio-said', ui.root).hidden = true;
   syncState();
   const progress = $('#progress', ui.root);
   const fill = $('#progress-fill', ui.root);
@@ -479,7 +536,7 @@ function run() {
       ui.busy = false;
       ui.active = null;
       progress.hidden = true;
-      if (!out.image) toast(out.text || 'Model nie zwrócił obrazka.', 'error', 6000);
+      if (!out.image) said(out.text || 'Model nie zwrócił obrazka.');
       /* One edit is roughly 35 s of the Mac's time; charging it as ~1500 tokens
          is a stand-in, and the Usage screen says the numbers are estimates. */
       else store.recordUsage(1500, 'g-images');
@@ -494,7 +551,7 @@ function showResult(dataUrl, label) {
   $('#result-label', ui.root).textContent = label || 'wynik';
   $('#result-download', ui.root).href = dataUrl;
   box.hidden = false;
-  if (!reduced()) gsap.from(box, { opacity: 0, y: 16, duration: 0.45, ease: 'power3.out' });
+  enter(box, { opacity: 0, y: 16, duration: 0.45 });
   box.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'nearest' });
 }
 

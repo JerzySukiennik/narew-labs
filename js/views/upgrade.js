@@ -8,7 +8,7 @@
  */
 
 import * as store from '../store.js';
-import { $, $$, el, esc, fmt, toast, overlay, closeOverlay, drawer, confirmDestructive, copyText, gsap, reduced } from '../ui.js';
+import { $, $$, el, esc, fmt, toast, overlay, closeOverlay, drawer, confirmDestructive, copyText, reduced, enter } from '../ui.js';
 
 /* One-stroke silhouettes. Drawn to scale against each other: the płotka is
    slight, the lin is deep-bodied, the sum is long and has barbels. */
@@ -108,7 +108,7 @@ function render(root) {
   bind($('#ref-btn', root), 'click', showReferral);
 
   if (!reduced()) {
-    gsap.from($$('.tier', root), { y: 18, opacity: 0, stagger: 0.07, duration: 0.5, ease: 'power3.out' });
+    enter($$('.tier', root), { y: 18, opacity: 0, stagger: 0.07, duration: 0.5 });
   }
 }
 
@@ -166,15 +166,20 @@ async function showCard(node) {
     const card = createCard(host, { number: '', name: '', expiry: '', cvc: '' });
     host.dataset.ready = '1';
 
+    /* A missing field must not take the rest of the card down with it. The CVV
+       was bound by the wrong id, which threw before the flip was ever wired -
+       so the card sat still exactly where it was supposed to turn over. */
     const bind = (sel, key) => {
       const input = node.querySelector(sel);
+      if (!input) { console.warn(`Brak pola ${sel} - karta nie dostanie ${key}.`); return; }
       input.addEventListener('input', () => card.update({ [key]: input.value }));
       input.addEventListener('focus', () => card.update({ focused: key }));
       input.addEventListener('blur', () => card.update({ focused: null }));
     };
+    bind('#co-card-name', 'name');
     bind('#co-card-number', 'number');
     bind('#co-card-exp', 'expiry');
-    bind('#co-card-cvc', 'cvc');
+    bind('#co-card-cvv', 'cvc');            // the id in the markup, not 'cvc'
   } catch (e) {
     console.warn('Nie wczytałem podglądu karty:', e.message);
   }
@@ -221,6 +226,8 @@ function checkout(tierId, root) {
       ${tier.price ? `
       <div class="checkout__preview" id="co-card-preview"></div>
       <div class="checkout__card">
+        <label class="label" for="co-card-name">Imię i nazwisko</label>
+        <input class="field" id="co-card-name" placeholder="Jan Kowalski" autocomplete="off" spellcheck="false" maxlength="26">
         <label class="label" for="co-card-number">Numer karty</label>
         <input class="field mono" id="co-card-number" inputmode="numeric" placeholder="4242 4242 4242 4242" maxlength="19" autocomplete="off">
         <div class="checkout__card-row">
@@ -296,7 +303,10 @@ function cardProblem(node) {
   const exp = digits('#co-card-exp');
   const cvv = digits('#co-card-cvv');
 
-  if (!number && !exp && !cvv) return 'Wpisz dane karty albo użyj kodu promocyjnego niżej.';
+  const name = node.querySelector('#co-card-name').value.trim();
+
+  if (!name && !number && !exp && !cvv) return 'Wpisz dane karty albo użyj kodu promocyjnego niżej.';
+  if (name.length < 3) return 'Wpisz imię i nazwisko z karty.';
   if (number.length < 16) return 'Numer karty ma 16 cyfr.';
   if (exp.length < 4) return 'Data ważności to MM/RR.';
   if (Number(exp.slice(0, 2)) < 1 || Number(exp.slice(0, 2)) > 12) return 'Miesiąc ważności musi być od 01 do 12.';

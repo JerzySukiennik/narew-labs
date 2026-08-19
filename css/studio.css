@@ -448,3 +448,43 @@
 @media (max-width: 760px) {
   .doodle__grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* The model answering in words. It stays until dismissed, because the list of
+   edits it knows is the useful part and a toast took it away mid-read. */
+.studio__said {
+  display: grid;
+  gap: var(--sp-3);
+  justify-items: start;
+  margin-top: var(--sp-3);
+  padding: var(--sp-4);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  font-size: var(--step--1);
+  line-height: 1.6;
+}
+.studio__said p { white-space: pre-wrap; }
+
+/* The model's whole vocabulary, as buttons. Folded away by default so it does
+   not shout over the prompt, but one click from anyone who guessed wrong. */
+.vocab { margin-top: var(--sp-3); }
+.vocab summary { cursor: pointer; }
+.vocab__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+.vocab__chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font: inherit;
+  font-size: var(--step--2);
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+.vocab__chip:hover { border-color: var(--accent); background: var(--surface-3); }
+@media (prefers-reduced-motion: reduce) { .vocab__chip { transition: none; } }

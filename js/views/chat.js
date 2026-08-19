@@ -12,7 +12,7 @@
 
 import * as store from '../store.js';
 import { CHAT_MODELS } from '../bridge.js';
-import { $, $$, el, esc, toast, overlayOpen, gsap, reduced } from '../ui.js';
+import { $, $$, el, esc, toast, overlayOpen, gsap, reduced, enter } from '../ui.js';
 
 const SUGGESTIONS = [
   'Kim jesteś?', 'Wymień trzy owoce.', 'Czym jest Warszawa?',
@@ -386,7 +386,7 @@ function togglePicker(open) {
      roving tabindex set by renderPicker says where. */
   const items = pickerOptions();
   (items.find((o) => o.tabIndex === 0) || items[0])?.focus({ preventScroll: true });
-  if (!reduced()) gsap.from(menu, { opacity: 0, y: 6, scale: 0.96, duration: 0.24, ease: 'power3.out' });
+  enter(menu, { opacity: 0, y: 6, scale: 0.96, duration: 0.24 });
 }
 
 const pickerOptions = () => $$('.picker__item', $('#picker-menu', ui.root));

@@ -426,3 +426,13 @@
 /* Leaving a plan sits on the card you are already on, quiet and full width so
    it never competes with the plans you could move to. */
 .tier__cancel { width: 100%; margin-top: var(--sp-2); font-size: var(--step--1); min-height: 38px; }
+
+/* The card picture above the fields. It stays out of the way until the library
+   has actually loaded, so a failed CDN leaves a working form rather than a gap
+   with nothing in it. */
+.checkout__preview { display: none; margin-bottom: var(--sp-2); }
+.checkout__preview[data-ready] { display: block; }
+
+/* The card keeps to the width of the fields under it rather than filling the
+   sheet, so the summary stays the thing you read first. */
+.checkout__preview .crd { max-width: 20rem; margin: 0 auto; }

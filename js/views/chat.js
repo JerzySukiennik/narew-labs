@@ -96,9 +96,25 @@ export async function mount(root, ctx) {
           </div>
 
           <div class="composer__pill">
-            <button type="button" class="composer__plus" id="plus-btn" aria-label="Dodaj załącznik" aria-expanded="false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-            </button>
+            <!-- The plus and the panel it opens are one surface: a 40px circle
+                 that grows into the menu rather than a button that reveals a
+                 box somewhere else. Anchored so it expands upward out of the
+                 pill instead of pushing the composer around. -->
+            <span class="composer__plus-anchor">
+              <div class="t-morph" id="plus-morph" data-open="false">
+                <div class="t-morph-menu">
+                  <button type="button" class="plus-panel__item" id="pick-file">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m3.5 17 4.8-4.5a2 2 0 0 1 2.7 0L20.5 21"/></svg>
+                    <span>Dodaj plik lub zdjęcie</span>
+                  </button>
+                  <input type="file" id="file-input" accept="image/*" class="sr-only">
+                </div>
+                <button type="button" class="t-morph-plus composer__plus" id="plus-btn"
+                        aria-label="Dodaj załącznik" aria-expanded="false">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                </button>
+              </div>
+            </span>
 
             <label class="sr-only" for="chat-input">Wiadomość</label>
             <textarea id="chat-input" class="composer__input" rows="1" placeholder="Napisz wiadomość…"></textarea>
@@ -121,13 +137,6 @@ export async function mount(root, ctx) {
           </div>
         </form>
 
-        <div class="plus-panel" id="plus-panel" hidden>
-          <button type="button" class="plus-panel__item" id="pick-file">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m3.5 17 4.8-4.5a2 2 0 0 1 2.7 0L20.5 21"/></svg>
-            <span>Dodaj plik lub zdjęcie</span>
-          </button>
-          <input type="file" id="file-input" accept="image/*" class="sr-only">
-        </div>
       </div>
     </div>`;
 
@@ -240,13 +249,13 @@ function wire() {
 
   /* attachments */
   const plusBtn = $('#plus-btn', root);
-  const panel = $('#plus-panel', root);
+  const morphEl = $('#plus-morph', root);
   on(plusBtn, 'click', () => togglePlus(!plusBtn.getAttribute('aria-expanded').includes('true')));
   on($('#pick-file', root), 'click', () => $('#file-input', root).click());
   on($('#file-input', root), 'change', (e) => attach(e.target.files?.[0]));
   on($('#attach-remove', root), 'click', () => setImage(null));
   on(document, 'pointerdown', (e) => {
-    if (!panel.hidden && !panel.contains(e.target) && e.target !== plusBtn) togglePlus(false);
+    if (morphEl.dataset.open === 'true' && !morphEl.contains(e.target)) togglePlus(false);
   });
 
   /* model picker */
@@ -298,7 +307,7 @@ function wire() {
       $('#picker-btn', ui.root).focus();
       return;
     }
-    if (!$('#plus-panel', ui.root).hidden) {
+    if ($('#plus-morph', ui.root)?.dataset.open === 'true') {
       e.stopPropagation();
       togglePlus(false);
       $('#plus-btn', ui.root).focus();
@@ -356,15 +365,14 @@ function syncComposer() {
 
 function togglePlus(open) {
   const btn = $('#plus-btn', ui.root);
-  const panel = $('#plus-panel', ui.root);
-  const next = open ?? panel.hidden;
+  const morph = $('#plus-morph', ui.root);
+  const next = open ?? morph.dataset.open !== 'true';
+  morph.dataset.open = String(next);
   btn.setAttribute('aria-expanded', String(next));
-  if (!next) { panel.hidden = true; return; }
-  panel.hidden = false;
-  $('.plus-panel__item', panel)?.focus({ preventScroll: true });
-  /* Anchored to the button it came from, so the spatial relationship is
-     obvious — it grows out of the "+", not out of nowhere. */
-  if (!reduced()) gsap.from(panel, { opacity: 0, y: 8, scale: 0.94, duration: 0.26, ease: 'power3.out' });
+  /* The surface animates itself in CSS; focus follows it in so the keyboard
+     lands on the one thing inside rather than behind it. */
+  if (next) $('.plus-panel__item', morph)?.focus({ preventScroll: true });
+  else btn.focus({ preventScroll: true });
 }
 
 function togglePicker(open) {

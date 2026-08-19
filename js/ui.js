@@ -287,6 +287,161 @@ export function confirmDestructive({ title, body, word, action }) {
   overlay(node, { label: title });
 }
 
+/* ---------------------------------------------------------------- drawer -- */
+/*
+ * A bottom sheet you can throw away with your thumb.
+ *
+ * Vaul was the ask, and Vaul is a React component with a Radix dialog inside
+ * it: adopting it would put React in the purchase path of an app that has none,
+ * for one screen. The behaviour is the part that matters and it is not much
+ * code, so it is here instead - the same shape and the same feel, on the
+ * platform this app already uses.
+ *
+ * The feel is the point, so it follows the rules that make a sheet read as a
+ * physical object rather than an animation: it tracks the finger 1:1 from
+ * wherever it was grabbed, resists rather than stops at the top, decides on
+ * release by where the throw is *going* rather than where it ended, and hands
+ * its release velocity to the settle so there is no seam between dragging and
+ * animating.
+ */
+
+let openDrawer = null;
+
+/** Where a flick would come to rest. Apple's projection, not the textbook one. */
+const project = (velocity, deceleration = 0.998) =>
+  (velocity / 1000) * deceleration / (1 - deceleration);
+
+export function drawer(node, { label = 'Panel', onClose } = {}) {
+  closeDrawer();
+  closeOverlay();
+
+  const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const host = $('#overlay-host');
+  const shell = el(`
+    <div class="drawer" role="dialog" aria-modal="true" aria-label="${esc(label)}">
+      <div class="drawer__scrim"></div>
+      <div class="drawer__sheet">
+        <div class="drawer__grip" aria-hidden="true"><span></span></div>
+        <div class="drawer__body"></div>
+      </div>
+    </div>`);
+  shell.querySelector('.drawer__body').appendChild(node);
+  host.innerHTML = '';
+  host.appendChild(shell);
+  host.hidden = false;
+
+  const sheet = shell.querySelector('.drawer__sheet');
+  const scrim = shell.querySelector('.drawer__scrim');
+  const app = $('#app');
+
+  /* Reading offsetHeight forces the browser to commit the closed transform
+     before the open state is set, which is the whole reason a frame was being
+     waited for. Doing it synchronously matters: requestAnimationFrame does not
+     run in a background tab, so a sheet opened there stayed shut until the tab
+     came back - the same trap that once swallowed the first chat message.
+     Pushing the page back is what makes the sheet read as being in front of
+     something rather than drawn on top of it. */
+  void sheet.offsetHeight;
+  shell.dataset.open = 'true';
+  app?.classList.add('is-behind-drawer');
+
+  let dragging = false;
+  let startY = 0;
+  let offset = 0;
+  let history = [];
+
+  const setY = (y, animate) => {
+    sheet.style.transition = animate
+      ? 'transform 420ms cubic-bezier(0.32, 0.72, 0, 1)'
+      : 'none';
+    sheet.style.transform = `translateY(${y}px)`;
+  };
+
+  /* Past the top the sheet gives less than it is given, so the boundary reads
+     as resistance rather than as a broken drag. */
+  const rubber = (over, height) => (over * height * 0.55) / (height + 0.55 * Math.abs(over));
+
+  const onDown = (e) => {
+    if (e.target.closest('input, textarea, button, a, select')) return;
+    dragging = true;
+    startY = e.clientY;
+    history = [{ y: e.clientY, t: performance.now() }];
+    sheet.setPointerCapture(e.pointerId);
+    sheet.style.transition = 'none';
+  };
+
+  const onMove = (e) => {
+    if (!dragging) return;
+    const raw = e.clientY - startY;
+    offset = raw >= 0 ? raw : rubber(raw, sheet.offsetHeight);
+    setY(offset, false);
+    history.push({ y: e.clientY, t: performance.now() });
+    if (history.length > 5) history.shift();
+  };
+
+  const onUp = () => {
+    if (!dragging) return;
+    dragging = false;
+
+    const first = history[0];
+    const last = history[history.length - 1];
+    const dt = Math.max(1, last.t - first.t);
+    const velocity = ((last.y - first.y) / dt) * 1000;      // px per second
+
+    /* Decide on the projection, not the position: a short fast flick should
+       dismiss, a long slow drag that stopped halfway should not. */
+    const projected = offset + project(velocity);
+    if (projected > sheet.offsetHeight * 0.4) {
+      dismiss(velocity);
+    } else {
+      setY(0, true);
+      offset = 0;
+    }
+  };
+
+  const dismiss = (velocity = 0) => {
+    const distance = Math.max(1, sheet.offsetHeight - offset);
+    const duration = velocity > 0
+      ? Math.max(140, Math.min(420, (distance / velocity) * 1000))
+      : 320;
+    sheet.style.transition = `transform ${Math.round(duration)}ms cubic-bezier(0.32, 0.72, 0, 1)`;
+    sheet.style.transform = `translateY(${sheet.offsetHeight}px)`;
+    shell.dataset.open = 'false';
+    setTimeout(closeDrawer, reduced() ? 0 : Math.round(duration));
+  };
+
+  sheet.addEventListener('pointerdown', onDown);
+  sheet.addEventListener('pointermove', onMove);
+  sheet.addEventListener('pointerup', onUp);
+  sheet.addEventListener('pointercancel', onUp);
+  scrim.addEventListener('click', () => dismiss());
+
+  openDrawer = { host, onClose, opener, app };
+  (node.querySelector('input, button, [tabindex]') || sheet).focus?.({ preventScroll: true });
+
+  return { close: () => dismiss() };
+}
+
+export function closeDrawer() {
+  if (!openDrawer) return;
+  const { host, onClose, opener, app } = openDrawer;
+  openDrawer = null;
+  app?.classList.remove('is-behind-drawer');
+  host.hidden = true;
+  host.innerHTML = '';
+  opener?.focus?.({ preventScroll: true });
+  onClose?.();
+}
+
+export const drawerOpen = () => Boolean(openDrawer);
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && openDrawer) {
+    e.stopPropagation();
+    closeDrawer();
+  }
+});
+
 /* --------------------------------------------------------------- entrance -- */
 
 /**

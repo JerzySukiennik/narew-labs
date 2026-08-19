@@ -545,3 +545,68 @@
 
   .page { padding: var(--sp-5) var(--sp-4) var(--sp-8); }
 }
+
+/* ---------------------------------------------------------------- drawer -- */
+/*
+ * A bottom sheet that can be thrown away. See drawer() in js/ui.js for why this
+ * is native rather than Vaul: the behaviour is what matters, and Vaul brings
+ * React and Radix into an app that has neither.
+ */
+
+.drawer { position: absolute; inset: 0; }
+
+.drawer__scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  opacity: 0;
+  transition: opacity var(--t-base) var(--ease-out);
+}
+.drawer[data-open='true'] .drawer__scrim { opacity: 1; }
+
+.drawer__sheet {
+  position: absolute;
+  inset: auto 0 0;
+  max-height: 92dvh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--surface);
+  border-top: 1px solid var(--line-strong);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  box-shadow: var(--shadow-lg);
+  transform: translateY(100%);
+  transition: transform 420ms var(--ease-settle);
+  touch-action: none;                  /* the sheet owns the vertical gesture */
+}
+.drawer[data-open='true'] .drawer__sheet { transform: translateY(0); }
+
+/* The grip is the affordance: it says the whole surface can be grabbed, which
+   a plain edge does not. */
+.drawer__grip { display: grid; place-items: center; padding: var(--sp-3) 0 var(--sp-2); cursor: grab; }
+.drawer__grip span {
+  width: 40px; height: 4px;
+  border-radius: var(--r-pill);
+  background: var(--line-strong);
+}
+.drawer__sheet:active .drawer__grip { cursor: grabbing; }
+
+.drawer__body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 var(--sp-2) calc(var(--sp-4) + env(safe-area-inset-bottom));
+}
+
+/* The page behind gives way a little, so the sheet reads as being in front of
+   something rather than painted on top of it. */
+.is-behind-drawer {
+  transform: scale(0.985);
+  transform-origin: top center;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  transition: transform var(--t-base) var(--ease-settle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer__sheet, .drawer__scrim, .is-behind-drawer { transition: none !important; }
+  .is-behind-drawer { transform: none; }
+}

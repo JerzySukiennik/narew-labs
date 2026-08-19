@@ -8,7 +8,7 @@
  */
 
 import * as store from '../store.js';
-import { $, $$, el, esc, fmt, toast, overlay, closeOverlay, confirmDestructive, copyText, gsap, reduced } from '../ui.js';
+import { $, $$, el, esc, fmt, toast, overlay, closeOverlay, drawer, confirmDestructive, copyText, gsap, reduced } from '../ui.js';
 
 /* One-stroke silhouettes. Drawn to scale against each other: the płotka is
    slight, the lin is deep-bodied, the sum is long and has barbels. */
@@ -43,7 +43,7 @@ export async function mount(root, ctx) {
  *  already on and hands you back to it when you close it. */
 export function openAsOverlay(ctx) {
   const node = el('<div class="upgrade-sheet"></div>');
-  overlay(node, { label: 'Plany' });
+  drawer(node, { label: 'Plany' });
   mount(node, ctx);
 }
 
@@ -136,6 +136,51 @@ function card(tier, current) {
 }
 
 /**
+ * The animated card above the fields.
+ *
+ * crd-ui is dependency-free and loaded from a CDN only when a paid checkout is
+ * actually opened, so nobody pays for it while browsing plans. It is a picture:
+ * it flips when the CVV is focused and recognises the brand from the digits,
+ * and it receives exactly what is typed into fields that go nowhere. If it
+ * fails to load, the fields work unchanged - a decoration must never be the
+ * reason a screen stops functioning.
+ */
+async function showCard(node) {
+  const host = node.querySelector('#co-card-preview');
+  if (!host) return;
+  try {
+    /* The stylesheet is not optional: without it the component renders as a bare
+       grey chip diagram. It is injected once and left in place, because a second
+       checkout should not pay for the same file again. */
+    if (!document.getElementById('crd-ui-styles')) {
+      const link = document.createElement('link');
+      link.id = 'crd-ui-styles';
+      link.rel = 'stylesheet';
+      link.href = 'https://esm.sh/crd-ui@0.13.1/styles/crd-ui.css';
+      document.head.appendChild(link);
+    }
+
+    const { createCard } = await import('https://esm.sh/crd-ui@0.13.1');
+    if (!node.isConnected) return;             // the overlay closed while we waited
+
+    const card = createCard(host, { number: '', name: '', expiry: '', cvc: '' });
+    host.dataset.ready = '1';
+
+    const bind = (sel, key) => {
+      const input = node.querySelector(sel);
+      input.addEventListener('input', () => card.update({ [key]: input.value }));
+      input.addEventListener('focus', () => card.update({ focused: key }));
+      input.addEventListener('blur', () => card.update({ focused: null }));
+    };
+    bind('#co-card-number', 'number');
+    bind('#co-card-exp', 'expiry');
+    bind('#co-card-cvc', 'cvc');
+  } catch (e) {
+    console.warn('Nie wczytałem podglądu karty:', e.message);
+  }
+}
+
+/**
  * Leave a paid plan.
  *
  * Straight back to Płotka, and immediately - there is no billing period to see
@@ -174,6 +219,7 @@ function checkout(tierId, root) {
       <div class="checkout__row checkout__row--total"><span>Do zapłaty</span><span class="mono">${tier.price ? `${tier.price},00 zł` : '0,00 zł'}</span></div>
 
       ${tier.price ? `
+      <div class="checkout__preview" id="co-card-preview"></div>
       <div class="checkout__card">
         <label class="label" for="co-card-number">Numer karty</label>
         <input class="field mono" id="co-card-number" inputmode="numeric" placeholder="4242 4242 4242 4242" maxlength="19" autocomplete="off">
@@ -235,6 +281,7 @@ function checkout(tierId, root) {
     }
   });
   node.querySelector('#promo-form').addEventListener('submit', (e) => redeem(e, node, root));
+  if (tier.price) showCard(node);
 
   overlay(node, { label: 'Podsumowanie zamówienia' });
 }

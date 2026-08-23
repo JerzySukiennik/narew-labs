@@ -183,7 +183,10 @@
 <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
 
 <noscript>
-  <p style="padding:2rem;font-family:system-ui">Narew Labs potrzebuje JavaScriptu - cała aplikacja to jedna strona.</p>
+  <!-- The same stack as the app, spelled out: this paragraph is the one thing
+       that has to render when nothing else does, so it cannot rely on a custom
+       property from a stylesheet. -->
+  <p style="padding:2rem;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',system-ui,sans-serif">Narew Labs potrzebuje JavaScriptu - cała aplikacja to jedna strona.</p>
 </noscript>
 
 <script type="module" src="js/main.js"></script>

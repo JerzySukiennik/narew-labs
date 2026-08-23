@@ -339,8 +339,10 @@ let revealed = false;
 let appRevealed = false;
 
 async function boot() {
-  /* Opt-in annotation overlay; costs nothing unless ?annotate=1 is present. */
-  import('./annotate.js').then((m) => m.start()).catch(() => {});
+  /* The annotation overlay is off. annotate.js is still in the tree and still
+     works; it simply is not started, so no stored ?annotate=1 flag can bring it
+     back either. Turning it on again is this one line. */
+  // import('./annotate.js').then((m) => m.start()).catch(() => {});
 
   initSidebar();
   initBridge();

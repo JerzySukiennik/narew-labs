@@ -12,6 +12,8 @@ import { IMAGE_MODELS, MODEL_FAMILIES, DEFAULT_IMAGE_MODEL } from '../bridge.js'
 import { $, $$, esc, toast, reduced, enter, revealText } from '../ui.js';
 import { mountPanel, unmountPanel } from '../doodle-panel.js';
 import { mountPanel as mountWeird, unmountPanel as unmountWeird } from '../weird-panel.js';
+import { mountNav, unmountNav } from '../pill-nav.js';
+import { mountSlider, unmountSlider } from '../version-slider.js';
 
 /*
  * Each preset carries a `look`: a CSS treatment applied to the sample flower so
@@ -155,6 +157,12 @@ async function upgradePreviews() {
 const MAX_IMAGE_CHARS = 400_000;
 
 let ui = null;
+let nav = null;
+let slider = null;
+
+/* The Mac announces wire names; the pill is grouped by family. */
+const familyOfWire = (wire) =>
+  (IMAGE_MODELS.find((m) => m.wire === wire) || {}).family || wire;
 
 /**
  * The stored version, but only if it can still be served. A version that lost
@@ -190,32 +198,22 @@ export async function mount(root, ctx) {
         <!-- The version belongs to the screen, not to one button: it decides
              what every edit here is answered by, so it sits with the title
              rather than beside the action. -->
-        <div class="picker studio__picker" id="picker">
-          <button type="button" class="picker__button" id="picker-btn"
-                  aria-haspopup="listbox" aria-expanded="false">
-            <span class="picker__dot" id="picker-dot" data-state="offline"></span>
-            <span id="picker-name">G-Image 2</span>
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                 aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-          </button>
-          <ul class="picker__menu" id="picker-menu" role="listbox"
-              aria-label="Wersja modelu" hidden></ul>
-        </div>
+        <div class="studio__version" id="version-host" hidden></div>
       </header>
 
-      <!-- The first screen. Three things this page can do, named without a
-           version number on any of them: the number answers "which G-Images",
-           which is a question nobody has yet. -->
+      <!-- The whole first screen: the question, and an arrow at the thing that
+           answers it. The three models used to be cards here and are now in the
+           pill at the bottom, which is on every screen - so a second, different
+           way to pick them would be two controls for one job, and the one that
+           only exists on the landing screen would be the one nobody learns. -->
       <section class="chooser" id="chooser">
-        <h3 class="chooser__title" id="chooser-title"></h3>
-        <div class="chooser__grid" role="list">
-          ${MODEL_FAMILIES.map((f) => `
-            <button type="button" class="chooser__card" role="listitem" data-family="${esc(f.id)}">
-              <span class="chooser__dot" data-state="offline" data-family-dot="${esc(f.id)}"></span>
-              <span class="chooser__name">${esc(f.name)}</span>
-              <span class="chooser__tagline muted">${esc(f.tagline)}</span>
-            </button>`).join('')}
+        <h2 class="chooser__title" id="chooser-title"></h2>
+        <div class="chooser__point" aria-hidden="true">
+          <svg viewBox="0 0 24 64" fill="none" stroke="currentColor" stroke-width="1.6"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 4v50" class="chooser__point-stem"/>
+            <path d="m5 47 7 7 7-7" class="chooser__point-head"/>
+          </svg>
         </div>
       </section>
 
@@ -297,7 +295,8 @@ export async function mount(root, ctx) {
         </figcaption>
         <img id="result-img" alt="Wynik przeróbki">
       </figure>
-    </div>`;
+    </div>
+    <div id="nav-host"></div>`;
 
   ui = {
     root, ctx, image: null, busy: false, active: null, handlers: [],
@@ -311,6 +310,14 @@ export async function mount(root, ctx) {
        already dropped on it and G-Weird keeps its queue. */
     family: null,
   };
+
+  /* The pill goes up before anything else, because it is the one control that
+     is on every screen here - including the chooser, which is now just a label
+     and an arrow pointing at it. */
+  nav = mountNav($('#nav-host', root), MODEL_FAMILIES, {
+    current: MODEL_FAMILIES[0].id,
+    onPick: openFamily,
+  });
   renderPicker();
 
   wire();
@@ -325,6 +332,10 @@ export async function mount(root, ctx) {
 export function unmount() {
   unmountPanel();
   unmountWeird();
+  unmountNav();
+  unmountSlider();
+  nav = null;
+  slider = null;
   ui?.handlers.forEach(([t, ty, fn]) => t.removeEventListener(ty, fn));
   /* Let go of the node without ending the job: cancelling calls back
      synchronously, which would toast "cancelled" at someone who is simply
@@ -337,41 +348,16 @@ export function unmount() {
 const on = (t, ty, fn) => { t.addEventListener(ty, fn); ui.handlers.push([t, ty, fn]); };
 
 function wire() {
-  /* chooser */
-  on($('#chooser', ui.root), 'click', (e) => {
-    const card = e.target.closest('[data-family]');
-    if (card) openFamily(card.dataset.family);
-  });
   on($('#studio-back', ui.root), 'click', showChooser);
 
-  /* picker */
-  const pickerBtn = $('#picker-btn', ui.root);
-  const pickerMenu = $('#picker-menu', ui.root);
-  on(pickerBtn, 'click', () => togglePicker());
-  on(pickerMenu, 'click', (e) => {
-    const item = e.target.closest('[data-model]');
-    if (!item) return;
-    ui.model = item.dataset.model;
-    localStorage.setItem('narew.imageModel', ui.model);
-    togglePicker(false);
+  /* Availability changes when the Mac wakes or sleeps, and both new controls
+     show it: the pill's dots and the slider's own state. */
+  on(document, 'narew:presence', () => {
+    const live = ui.ctx.bridge.modelList();
+    nav?.presence(live.filter((l) => l.available).map((l) => familyOfWire(l.id)));
+    slider?.refresh(live);
     renderPicker();
-    /* A different checkpoint edited different pictures. */
-    upgradePreviews();
-    applyMode();
-    syncState();
   });
-  on(document, 'pointerdown', (e) => {
-    const p = $('#picker', ui.root);
-    if (p && !p.contains(e.target)) togglePicker(false);
-  });
-  on(document, 'keydown', (e) => {
-    if (e.key === 'Escape' && !$('#picker-menu', ui.root).hidden) {
-      togglePicker(false);
-      pickerBtn.focus();
-    }
-  });
-  /* Availability changes when the Mac wakes or sleeps. */
-  on(document, 'narew:presence', () => renderPicker());
 
   const { root } = ui;
   const drop = $('#drop', root);
@@ -701,73 +687,51 @@ function applyMode() {
      it would be a menu of one, and on the chooser it would be answering a
      question that has not been asked yet. */
   const versions = models().filter((m) => m.family === ui.family && m.wire);
-  $('#picker', ui.root).hidden = choosing || versions.length < 2;
+  $('#version-host', ui.root).hidden = choosing || versions.length < 2;
 
-  /* A family is awake when any version of it is. Saying so on the card means
-     the answer to "is this going to work" comes before the click, not after. */
-  const live = models();
-  $$('[data-family-dot]', ui.root).forEach((dot) => {
-    const any = live.some((m) => m.family === dot.dataset.familyDot && m.available);
-    dot.dataset.state = any ? 'online' : 'offline';
+  /* The pill is the one place a model is chosen, so it follows whatever changed
+     the family - a card, the back link, or the pill itself. */
+  nav?.select(ui.family || MODEL_FAMILIES[0].id);
+}
+
+/**
+ * Build the version slider for whichever family is open.
+ *
+ * Rebuilt on a family change rather than updated, because the ladder itself is
+ * different: three rungs for G-Images, one for the others, and a slider with one
+ * position is not a slider - it is hidden, the way the dropdown was.
+ */
+function renderPicker() {
+  applyMode();
+  const host = ui?.root && $('#version-host', ui.root);
+  if (!host) return;
+
+  /* Ascending, which the registry is not: it lists newest first, so the slider
+     read 2.1 - 2 - 1 and the ladder ran downhill. Sorted by the version number
+     itself so a future 3 lands to the right of 2.1 rather than beside it
+     alphabetically. */
+  const versions = models()
+    .filter((m) => m.family === ui.family && m.wire)
+    .sort((a, b) => parseFloat(a.short ?? '0') - parseFloat(b.short ?? '0'));
+  const signature = versions.map((v) => v.id).join('|');
+  if (host.dataset.signature === signature) { slider?.select(ui.model); return; }
+  host.dataset.signature = signature;
+
+  unmountSlider();
+  slider = null;
+  if (versions.length < 2) { host.innerHTML = ''; return; }
+
+  slider = mountSlider(host, versions, {
+    current: ui.model,
+    onPick: (id) => {
+      ui.model = id;
+      localStorage.setItem('narew.imageModel', id);
+      /* A different checkpoint edited different pictures. */
+      upgradePreviews();
+      applyMode();
+      syncState();
+    },
   });
 }
 
-function renderPicker() {
-  const current = currentImageModel();
-  /* Called from here as well as from the click handler, because the picker also
-     re-renders when the Mac's model list arrives - and the layout has to follow
-     the selection on every one of those paths, not just the one where a human
-     clicked. */
-  applyMode();
-  const btn = $('#picker-name', ui.root);
-  if (!btn) return;
 
-  /* Inside a family the number IS the name: "1", "2", "2.1". Repeating
-     "G-Image" on a screen already titled G-Images says nothing, and the three
-     of them line up as versions only when the shared half is dropped. */
-  btn.textContent = current.short || current.name;
-  $('#picker-dot', ui.root).dataset.state = current.available ? 'online' : 'offline';
-
-  /* Only this family's versions, and only the ones a Mac could actually serve.
-     A version with no wire name has no checkpoint anywhere, so offering it can
-     only ever end in a refusal. */
-  const versions = models().filter((m) => m.family === ui.family && m.wire);
-
-  const row = (m) => `
-    <li role="presentation">
-      <button type="button" role="option" data-model="${esc(m.id)}"
-              aria-selected="${m.id === ui.model}"
-              class="picker__item ${m.id === ui.model ? 'is-current' : ''}">
-        <span class="picker__dot" data-state="${m.available ? 'online' : 'offline'}"></span>
-        <span class="picker__body">
-          <span class="picker__title">${esc(m.short || m.name)}</span>
-          <span class="picker__desc">${esc(m.desc || '')}</span>
-        </span>
-        <span class="picker__state">${m.available ? 'gotowy' : 'śpi'}</span>
-      </button>
-    </li>`;
-
-  /* Same rule as chat's picker: the Mac's heartbeat arrives about once a second
-     and must not rewrite an open menu, which replaced the options under the
-     pointer and threw away whatever had focus. */
-  const menu = $('#picker-menu', ui.root);
-  const signature = versions.map((m) => `${m.id}:${m.available}`).join('|')
-    + `#${ui.model}#${ui.family}`;
-  if (menu.dataset.signature === signature) return;
-  if (!menu.hidden) { ui.pickerStale = true; return; }
-  ui.pickerStale = false;
-  menu.dataset.signature = signature;
-
-  menu.innerHTML = versions.map(row).join('');
-}
-
-function togglePicker(open) {
-  const menu = $('#picker-menu', ui.root);
-  const next = open === undefined ? menu.hidden : open;
-  menu.hidden = !next;
-  $('#picker-btn', ui.root).setAttribute('aria-expanded', String(next));
-  if (!next) { renderPicker(); return; }
-  /* The same entrance chat's picker has, so the two read as one control in two
-     places rather than two controls. */
-  enter(menu, { opacity: 0, y: -6, scale: 0.96, duration: 0.24 });
-}

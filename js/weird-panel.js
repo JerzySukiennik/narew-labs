@@ -133,6 +133,10 @@ function commit() {
 
   const item = {
     id: nextId++, prompt, status: 'pending', image: null, handle: null,
+    /* Set below, and only if the flight actually starts. The tile is the ball
+       once it lands, so until then it must not be on screen - but a tile hidden
+       for a flight that never ran would never come back. */
+    incoming: false,
   };
   /* Newest at the front. The one you just wrote is the one you are waiting on,
      so it belongs where the eye already is rather than at the end of a row that
@@ -143,7 +147,14 @@ function commit() {
 
   const line = $('#weird-line', ui.host);
   const tile = $(`[data-item="${item.id}"]`, ui.host);
-  flyToQueue(line, tile);
+  if (flyToQueue(line, tile)) {
+    item.incoming = true;
+    tile.setAttribute('data-incoming', '');
+    /* Cleared on the item as well as the tile: renderQueue rebuilds from the
+       array, and a later rebuild would otherwise hide a tile that landed long
+       ago. */
+    setTimeout(() => { item.incoming = false; }, 980);
+  }
   clearText();
 }
 
@@ -164,10 +175,10 @@ function commit() {
  * distort. What lands is a shape, and the shape becomes the tile.
  */
 function flyToQueue(line, tile) {
-  if (!tile || reduced()) return;
+  if (!tile || reduced()) return false;
   const from = line.getBoundingClientRect();
   const to = tile.getBoundingClientRect();
-  if (!from.width || !to.width) return;
+  if (!from.width || !to.width) return false;
 
   const BALL = 44;
   const ghost = document.createElement('div');
@@ -228,11 +239,14 @@ function flyToQueue(line, tile) {
 
   at(980, () => {
     ghost.remove();
-    /* The tile takes the hit, so the ball is felt landing rather than just
-       ceasing to exist somewhere near it. */
+    /* The ball stops being the ball and starts being the tile in the same
+       frame: one disappears exactly where the other appears, so they read as
+       the same object rather than a handover. */
+    delete tile.dataset.incoming;
     tile.dataset.landed = 'true';
     at(360, () => { delete tile.dataset.landed; });
   });
+  return true;
 }
 
 function flashHint(text) {
@@ -276,7 +290,8 @@ function renderQueue() {
   const host = $('#weird-queue', ui.host);
   host.innerHTML = queue.map((item) => `
     <div class="weird__tile" role="listitem" data-item="${item.id}"
-         data-status="${item.status}" title="${esc(item.prompt)}">
+         data-status="${item.status}" ${item.incoming ? 'data-incoming' : ''}
+         title="${esc(item.prompt)}">
       <div class="weird__tile-shimmer" aria-hidden="true"></div>
       <img class="weird__tile-img" alt="${esc(item.prompt)}" hidden>
       <button type="button" class="weird__tile-stop" data-stop="${item.id}"
@@ -302,15 +317,25 @@ function paint(item) {
     const img = $('.weird__tile-img', tile);
     if (img.src !== item.image) {
       img.src = item.image;
-      img.hidden = false;
-      /* The glow underneath is taken from the picture itself, so the reveal is
-         the colours of this image arriving rather than a generic flourish. */
-      img.addEventListener('load', () => {
+      /* The reveal used to be skipped entirely. The image went from hidden -
+         display:none - straight to its revealed state, and an element that was
+         not rendered a moment ago has no previous value to transition from, so
+         the browser simply painted the end. It is unhidden first, the start
+         state is committed with a forced reflow, and only then does it arrive.
+         A data URL can also be complete before a load listener is attached, so
+         both paths are handled. */
+      const show = () => {
+        /* The glow underneath is taken from the picture itself, so the reveal is
+           the colours of this image arriving rather than a generic flourish. */
         const [a, b] = paletteOf(img);
         tile.style.setProperty('--tile-a', a);
         tile.style.setProperty('--tile-b', b);
+        img.hidden = false;
+        void img.offsetHeight;
         tile.dataset.revealed = 'true';
-      }, { once: true });
+      };
+      if (img.complete && img.naturalWidth) show();
+      else img.addEventListener('load', show, { once: true });
     }
   }
   if (item.note) tile.title = `${item.prompt} — ${item.note}`;
@@ -458,6 +483,23 @@ function toFile(item) {
   }
 }
 
+/**
+ * Take focus the moment this screen becomes the visible one.
+ *
+ * The panel is mounted once and hidden by the family switcher rather than being
+ * created on arrival, so there is no mount to hook: arriving from G-Images is an
+ * attribute change on a div. Without this, landing here left the caret blinking
+ * at a field that was not actually focused, and typing did nothing until you
+ * found the right place to click.
+ */
+function focusWhenShown(host, ghost) {
+  const obs = new MutationObserver(() => {
+    if (!host.hidden) ghost.focus({ preventScroll: true });
+  });
+  obs.observe(host, { attributes: true, attributeFilter: ['hidden'] });
+  ui.observer = obs;
+}
+
 /* ----------------------------------------------------------------- mount -- */
 
 export function mountPanel(host, ctx) {
@@ -481,6 +523,24 @@ export function mountPanel(host, ctx) {
      not: that opens the picture. */
   on($('.weird__stage', host), 'click', () => ghost.focus({ preventScroll: true }));
 
+  /* And you should never have to find the field at all. On a screen whose whole
+     premise is "write something", a keystroke IS the intent to write, so any
+     key typed while nothing else is focused goes to the prompt - the first
+     character included, which is why focus is taken on keydown rather than
+     after. Modifier combinations are left alone so copy, paste, reload and
+     every other shortcut still belong to the browser. */
+  on(document, 'keydown', (e) => {
+    if (host.hidden || !host.isConnected) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (document.querySelector('.weird__viewer')) return;      // the picture is open
+    const el = document.activeElement;
+    if (el === ghost) return;
+    if (el && el.closest('input, textarea, select, [contenteditable="true"]')) return;
+    /* Only keys that mean text. Tab, arrows and Escape still navigate. */
+    if (e.key.length !== 1 && e.key !== 'Backspace') return;
+    ghost.focus({ preventScroll: true });
+  });
+
   on($('#weird-queue', host), 'click', (e) => {
     const stopBtn = e.target.closest('[data-stop]');
     if (stopBtn) { stop(stopBtn.dataset.stop); return; }
@@ -490,7 +550,8 @@ export function mountPanel(host, ctx) {
 
   /* Whatever was queued before leaving for another model is still here. */
   renderQueue();
-  if (!reduced()) ghost.focus({ preventScroll: true });
+  focusWhenShown(host, ghost);
+  if (!host.hidden) ghost.focus({ preventScroll: true });
 }
 
 export function unmountPanel() {
@@ -498,6 +559,7 @@ export function unmountPanel() {
      throw away seven seconds of Mac that is already half spent, and the queue
      these belong to is still here when you come back. */
   clearTimeout(ui?.hintTimer);
+  ui?.observer?.disconnect();
   ui?.handlers.forEach(([t, ty, fn]) => t.removeEventListener(ty, fn));
   ui = null;
 }

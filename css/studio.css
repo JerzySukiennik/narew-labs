@@ -502,11 +502,12 @@
 
 /* ------------------------------------------------------------- chooser -- */
 /*
- * The first screen of Image Studio: what do you want to do, before any version
- * number is involved. Deliberately roomy - three choices do not need a dense
- * grid, and the heading is the thing arriving.
+ * The landing screen is now one sentence and an arrow at the pill. Everything
+ * that used to be here - three cards, three dots, three taglines - moved into
+ * the pill, which is on every screen; keeping a second copy on this one would
+ * have been two controls for one job, and the copy that only exists on the
+ * landing screen is the one nobody would ever learn.
  */
-/* Stacked, so the title keeps the same left edge as every section below it. */
 .studio__where { display: grid; gap: var(--sp-2); justify-items: start; }
 
 .studio__back {
@@ -528,92 +529,205 @@
 .studio__back svg { transition: transform 160ms var(--ease-out); }
 .studio__back:hover svg { transform: translateX(-2px); }
 
-/* This screen has one job and the whole viewport to do it in, so it takes the
-   whole viewport: the block centres in what is left under the header instead of
-   sitting in a strip at the top with half a screen of nothing beneath it. */
 .chooser {
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
-  min-height: clamp(24rem, 74vh, 52rem);
-  padding: var(--sp-6) 0;
+  gap: clamp(var(--sp-5), 5vh, var(--sp-7));
+  min-height: clamp(22rem, 66vh, 46rem);
+  text-align: center;
 }
 
+/* As big as the space allows. It is the only thing on the screen, so anything
+   less than enormous would read as a heading waiting for content under it. */
 .chooser__title {
-  margin: 0 0 clamp(var(--sp-5), 4vh, var(--sp-7));
+  margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(2.4rem, 6.5vw, 4.6rem);
+  font-size: clamp(3rem, 11vw, 9rem);
   font-weight: 600;
-  letter-spacing: var(--track-display);
-  line-height: 1.02;
+  letter-spacing: -0.045em;
+  line-height: 0.94;
 }
 
-.chooser__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr));
-  gap: clamp(var(--sp-4), 1.6vw, var(--sp-5));
+.chooser__point { color: var(--text-faint); }
+.chooser__point svg { width: 22px; height: clamp(40px, 7vh, 64px); display: block; }
+/* Drawn once on arrival, then a slow drift down toward the thing it points at.
+   Slow enough to be noticed only after the words have been read. */
+.chooser__point-stem { stroke-dasharray: 52; stroke-dashoffset: 52; animation: point-draw 700ms var(--ease-out) 380ms forwards; }
+.chooser__point-head { opacity: 0; animation: point-head 400ms var(--ease-out) 1000ms forwards; }
+.chooser__point { animation: point-drift 2.8s ease-in-out 1.4s infinite; }
+
+@keyframes point-draw { to { stroke-dashoffset: 0; } }
+@keyframes point-head { to { opacity: 1; } }
+@keyframes point-drift {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chooser__point, .chooser__point-stem, .chooser__point-head { animation: none; }
+  .chooser__point-stem { stroke-dashoffset: 0; }
+  .chooser__point-head { opacity: 1; }
 }
 
-.chooser__card {
+/* --------------------------------------------------------- the pill nav -- */
+/*
+ * Floating chrome, so it is a material with the page passing under it rather
+ * than a bar that eats a strip of the screen. Fixed to the viewport and centred
+ * on the content column, present on every screen in Image Studio.
+ */
+#nav-host { position: fixed; inset: auto 0 0; z-index: 40; pointer-events: none; }
+
+.pillnav {
+  pointer-events: auto;
+  width: max-content;
+  max-width: calc(100vw - var(--sp-6));
+  margin: 0 auto;
+  margin-bottom: calc(var(--sp-5) + env(safe-area-inset-bottom));
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, white 12%, transparent);
+  background: color-mix(in srgb, var(--surface) 62%, transparent);
+  backdrop-filter: blur(22px) saturate(170%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22), 0 18px 44px rgba(0, 0, 0, 0.34);
+}
+
+.pillnav__track {
   position: relative;
   display: grid;
-  gap: var(--sp-2);
-  justify-items: start;
-  align-content: end;
-  gap: var(--sp-3);
-  min-height: clamp(11rem, 26vh, 15rem);
-  padding: clamp(var(--sp-5), 2.4vw, var(--sp-6));
-  border-radius: 24px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-  overflow: hidden;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14), 0 10px 28px rgba(0, 0, 0, 0.1);
-  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1),
-              border-color 200ms var(--ease-out),
-              box-shadow 200ms var(--ease-out);
+  grid-template-columns: repeat(var(--pn-count, 3), minmax(0, 1fr));
+  touch-action: pan-y;                 /* the pill owns horizontal, the page vertical */
+  cursor: grab;
 }
-/* A single hairline of light along the top edge, the way a real surface catches
-   it. Enough to give the card a body; not enough to notice as an effect. */
-.chooser__card::before {
-  content: '';
+.pillnav__track[data-dragging] { cursor: grabbing; }
+
+/* One thumb that travels, rather than three highlights that blink on and off:
+   the three models are three positions of one thing, and the travel is what
+   says so. */
+.pillnav__thumb {
   position: absolute;
-  inset: 0 0 auto;
-  height: 1px;
-  background: linear-gradient(90deg, transparent,
-    color-mix(in srgb, white 22%, transparent), transparent);
+  inset: 0 auto 0 0;
+  width: calc(100% / var(--pn-count, 3));
+  border-radius: 999px;
+  background: var(--text);
+  transform-origin: center;
+  will-change: transform;
 }
-.chooser__card:hover {
-  border-color: var(--accent-line);
-  transform: translateY(-4px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18), 0 22px 48px rgba(0, 0, 0, 0.22);
+
+.pillnav__slot {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) clamp(var(--sp-3), 2.4vw, var(--sp-5));
+  border: 0;
+  background: none;
+  border-radius: 999px;
+  cursor: inherit;
+  font-size: var(--step--1);
+  font-weight: 500;
+  letter-spacing: var(--track-body);
+  white-space: nowrap;
+  /* --on is written per frame from the thumb's live position, so the label
+     inverts as the thumb actually arrives under it - including mid-drag, where
+     there is no selected value yet. */
+  color: color-mix(in srgb, var(--bg) calc(var(--on, 0) * 100%),
+                   color-mix(in srgb, var(--text) 68%, transparent));
 }
-.chooser__card:active { transform: translateY(-1px) scale(0.99); }
-.chooser__dot {
-  width: 9px; height: 9px;
+.pillnav__slot:hover { color: color-mix(in srgb, var(--bg) calc(var(--on, 0) * 100%), var(--text)); }
+
+.pillnav__dot {
+  width: 6px; height: 6px;
   border-radius: 50%;
-  background: var(--text-faint);
-  margin-bottom: auto;
+  background: color-mix(in srgb, currentColor 40%, transparent);
+  flex: none;
 }
-.chooser__dot[data-state='online'] { background: var(--ok, #6ee7a8); }
-.chooser__name {
-  font-family: var(--font-display);
-  font-size: clamp(1.5rem, 2.2vw, 2rem);
+.pillnav__dot[data-state='online'] { background: var(--sitowie, #8c9b5a); }
+
+/* The pill floats over the page, so every screen here needs room under it. */
+.studio { padding-bottom: calc(var(--sp-8) + 3rem); }
+
+/* --------------------------------------------------- the version slider -- */
+/*
+ * Versions are a ladder, so the control is a ladder. A dropdown flattened them
+ * into three unrelated things you pick one of; left to right is 1, 2, 2.1, and
+ * moving along it is a move rather than a choice.
+ */
+.studio__version { display: grid; gap: var(--sp-2); justify-items: end; }
+
+.vslider {
+  display: grid;
+  gap: var(--sp-2);
+  justify-items: end;
+  width: clamp(9rem, 22vw, 13rem);
+  cursor: grab;
+}
+.vslider[data-dragging] { cursor: grabbing; }
+
+.vslider__channel {
+  position: relative;
+  width: 100%;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+.vslider__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+/* The rungs, so the ladder is visible before it is touched. */
+.vslider__tick {
+  position: absolute;
+  top: 50%;
+  width: 3px; height: 3px;
+  margin-top: -1.5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text) 26%, transparent);
+}
+
+.vslider__thumb {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 26px; height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.68rem;
   font-weight: 600;
-  letter-spacing: var(--track-display);
-  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  transform-origin: center;
+  will-change: transform;
+  transition: width 220ms var(--ease-out), height 220ms var(--ease-out);
 }
-.chooser__tagline {
-  font-size: var(--step-0);
-  line-height: 1.45;
-  max-width: 24ch;
+.vslider__thumb[data-big='true'] { width: 30px; height: 30px; top: 1px; }
+
+.vslider__caption {
+  font-size: 0.68rem;
+  line-height: 1.3;
+  text-align: right;
+  max-width: 100%;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .chooser__card, .studio__back { transition: none; }
-  .chooser__card:hover { transform: none; }
+  .vslider__thumb { transition: none; }
+}
+
+/* On a phone the pill is the primary control and the slider follows the title
+   rather than hugging the right edge of a column that is barely wider. */
+@media (max-width: 620px) {
+  .studio__version, .vslider { justify-items: stretch; }
+  .vslider { width: 100%; }
+  .vslider__caption { text-align: left; }
 }
 
 /* ------------------------------------------------------------- g-weird -- */
@@ -1030,3 +1144,8 @@
   .preset:hover, .preset:active { transform: none; }
   .weird__tile[data-status='done']:hover { transform: none; }
 }
+
+/* A tile that has not been flown into yet. It is the ball's destination, not a
+   placeholder: showing an empty square waiting to be filled would make the
+   flight decorative, when the point is that one object travels and lands. */
+.weird__tile[data-incoming] { opacity: 0; transform: scale(0.6); }

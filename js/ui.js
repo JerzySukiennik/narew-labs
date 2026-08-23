@@ -131,6 +131,35 @@ export function enter(target, vars = {}) {
   });
 }
 
+
+/**
+ * Text that arrives out of focus and settles, one piece at a time.
+ *
+ * The chat transcript reveals whole words because it is reading material and a
+ * word is the unit the eye takes in. A short heading, or something being typed,
+ * wants letters: at that size a word is one gulp and the reveal never reads as
+ * arriving at all. Both share the blur - text that sharpens stays readable the
+ * whole way through, where text that slides pulls the eye to the motion.
+ *
+ * Returns the container so a caller can measure it straight away; the animation
+ * is CSS, so nothing here depends on a frame being painted.
+ */
+export function revealText(node, text, { by = 'char', step = 22 } = {}) {
+  const parts = by === 'word' ? String(text).split(/(\s+)/) : [...String(text)];
+  node.textContent = '';
+  parts.forEach((part, i) => {
+    if (/^\s+$/.test(part)) { node.append(part); return; }
+    const span = document.createElement('span');
+    span.className = 'char-in';
+    span.textContent = part;
+    /* Reduced motion still gets the text, just all at once and already sharp. */
+    if (!reduced()) span.style.animationDelay = `${i * step}ms`;
+    else span.style.animation = 'none';
+    node.append(span);
+  });
+  return node;
+}
+
 export function toast(message, kind = 'info', ms = 3600) {
   const host = $('#toasts');
   if (!host) return;

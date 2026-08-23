@@ -497,3 +497,300 @@
 }
 .vocab__chip:hover { border-color: var(--accent); background: var(--surface-3); }
 @media (prefers-reduced-motion: reduce) { .vocab__chip { transition: none; } }
+
+/* ------------------------------------------------------------- chooser -- */
+/*
+ * The first screen of Image Studio: what do you want to do, before any version
+ * number is involved. Deliberately roomy - three choices do not need a dense
+ * grid, and the heading is the thing arriving.
+ */
+.studio__where { display: flex; align-items: center; gap: var(--sp-3); }
+
+.studio__back {
+  display: grid;
+  place-items: center;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
+}
+.studio__back:hover { background: var(--surface-3); color: var(--text); }
+
+.chooser { padding: clamp(var(--sp-5), 6vh, var(--sp-8)) 0; }
+
+.chooser__title {
+  margin: 0 0 var(--sp-6);
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5.5vw, 3.4rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+.chooser__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--sp-4);
+}
+
+.chooser__card {
+  display: grid;
+  gap: var(--sp-2);
+  justify-items: start;
+  padding: var(--sp-5);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease-out),
+              background var(--t-fast) var(--ease-out),
+              transform var(--t-fast) var(--ease-out);
+}
+.chooser__card:hover {
+  border-color: var(--accent-line);
+  background: var(--surface-2);
+  transform: translateY(-2px);
+}
+.chooser__card:active { transform: translateY(0); }
+.chooser__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); }
+.chooser__dot[data-state='online'] { background: var(--ok, #6ee7a8); }
+.chooser__name { font-family: var(--font-display); font-size: var(--step-1); font-weight: 600; }
+.chooser__tagline { font-size: var(--step--1); line-height: 1.5; }
+
+@media (prefers-reduced-motion: reduce) {
+  .chooser__card, .studio__back { transition: none; }
+  .chooser__card:hover { transform: none; }
+}
+
+/* ------------------------------------------------------------- g-weird -- */
+/*
+ * An empty screen you write into. The only rule here is that nothing looks like
+ * a form: no field border, no label, no button. What you have written is the
+ * interface, and the queue is the only furniture that ever appears.
+ */
+.weird {
+  display: flex;
+  flex-direction: column;
+  min-height: min(70vh, 640px);
+}
+
+.weird__stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--sp-3);
+  padding: var(--sp-6) 0;
+  cursor: text;
+}
+
+.weird__line {
+  display: inline;
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 4.4vw, 3rem);
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  max-width: 20ch;
+  overflow-wrap: anywhere;
+}
+
+/* The caret is ours, because the real input is invisible. It sits on the text
+   baseline and blinks on the same rhythm a native one does. */
+.weird__caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 1px;
+  vertical-align: -0.12em;
+  background: var(--accent);
+  animation: weird-blink 1.05s steps(1, end) infinite;
+}
+@keyframes weird-blink { 0%, 45% { opacity: 1; } 50%, 95% { opacity: 0; } }
+
+.weird__hint { font-size: var(--step--1); letter-spacing: 0.01em; }
+
+/* Present, focusable, and carrying the keyboard - just not visible. Not
+   display:none and not hidden: either would take the mobile keyboard with it. */
+.weird__ghost {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 1px; height: 1px;
+  border: 0; padding: 0;
+}
+
+/* The prompt in flight: outlined where it was written, then shrinking into its
+   tile. Fixed-position so it travels over the page rather than inside it. */
+.weird__flight {
+  position: fixed;
+  z-index: 60;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 4.4vw, 3rem);
+  line-height: 1.25;
+  color: var(--text);
+  overflow: hidden;
+  pointer-events: none;
+  transition: border-color 220ms var(--ease-out), background 220ms var(--ease-out);
+}
+.weird__flight[data-drawn='true'] {
+  border-color: var(--accent-line, var(--accent));
+  background: var(--surface-2);
+}
+
+/* ------------------------------------------------------- g-weird queue -- */
+.weird__queue {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+  min-height: 96px;
+  align-content: flex-start;
+}
+.weird__queue:empty { border-top-color: transparent; }
+
+.weird__tile {
+  position: relative;
+  width: 84px; height: 84px;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  flex: none;
+}
+.weird__tile[data-status='pending'] { cursor: default; }
+
+/* While the Mac paints there is nothing to show, so the tile shows movement
+   instead of a number: a gradient sliding under a spinner. It is honest about
+   being indeterminate, which a progress bar would not be - nothing reports
+   progress from inside the sampling loop. */
+.weird__tile-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg,
+    var(--surface-2) 0%, var(--accent-soft, var(--surface-3)) 45%,
+    var(--surface-3) 60%, var(--surface-2) 100%);
+  background-size: 300% 100%;
+  animation: weird-shift 2.4s linear infinite;
+}
+.weird__tile[data-status='done'] .weird__tile-shimmer { opacity: 0; }
+@keyframes weird-shift {
+  from { background-position: 0% 50%; }
+  to { background-position: 300% 50%; }
+}
+
+.weird__tile::after {
+  content: '';
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 20px; height: 20px;
+  margin: -10px 0 0 -10px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--text) 25%, transparent);
+  border-top-color: var(--text);
+  animation: weird-spin 700ms linear infinite;
+}
+.weird__tile:not([data-status='pending'])::after { content: none; }
+
+@keyframes weird-spin { to { transform: rotate(360deg); } }
+
+.weird__tile-img {
+  position: relative;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  transform: scale(1.04);
+  transition: opacity 520ms var(--ease-out), transform 520ms var(--ease-out);
+}
+/* The reveal is lit from underneath by the picture's own colours, sampled once
+   it has loaded - so what arrives is this image appearing, not a stock flourish
+   playing over it. */
+.weird__tile[data-revealed='true'] {
+  background: linear-gradient(135deg, var(--tile-a), var(--tile-b));
+}
+.weird__tile[data-revealed='true'] .weird__tile-img { opacity: 1; transform: scale(1); }
+
+.weird__tile-stop {
+  position: absolute;
+  top: 3px; right: 3px;
+  width: 20px; height: 20px;
+  display: grid; place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, black 55%, transparent);
+  color: white;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease-out);
+}
+.weird__tile:hover .weird__tile-stop,
+.weird__tile-stop:focus-visible { opacity: 1; }
+
+.weird__tile[data-status='error'],
+.weird__tile[data-status='cancelled'] { border-style: dashed; opacity: 0.6; }
+
+/* ------------------------------------------------------ g-weird viewer -- */
+.weird__viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  gap: var(--sp-5);
+  padding: var(--sp-6);
+  background: color-mix(in srgb, var(--bg) 88%, black);
+  backdrop-filter: blur(14px);
+}
+.weird__viewer-figure { display: grid; gap: var(--sp-3); justify-items: center; margin: 0; }
+.weird__viewer-figure img {
+  max-width: min(78vw, 620px);
+  max-height: 66vh;
+  border-radius: var(--r-lg);
+  image-rendering: auto;
+}
+.weird__viewer-figure figcaption { font-size: var(--step--1); text-align: center; }
+
+ /* Fixed, not absolute. The viewer is a grid container, and an absolutely
+   positioned child of one resolves its offsets against the grid area rather
+   than the box you can see - which put "bottom centre" wherever the content
+   happened to end. Against the viewport there is nothing to get wrong. */
+.weird__viewer-close {
+  position: fixed;
+  top: var(--sp-5); right: var(--sp-5);
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.weird__viewer-actions {
+  position: fixed;
+  left: 50%;
+  bottom: var(--sp-6);
+  transform: translateX(-50%);
+  display: flex;
+  gap: var(--sp-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weird__caret { animation: none; }
+  .weird__tile-shimmer { animation: none; }
+  .weird__tile::after { animation: none; }
+  .weird__tile-img { transition: none; opacity: 1; transform: none; }
+}

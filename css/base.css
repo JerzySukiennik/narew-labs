@@ -274,3 +274,17 @@ button:disabled:active, .btn:disabled:active { transform: none; }
 
 /* Scrollbars only appear where something actually scrolls. */
 .view { scrollbar-gutter: stable; }
+
+/* One blurred-arrival animation, shared by the chat transcript, the Image
+   Studio heading, and G-Weird's typing. Same idea at three sizes. */
+.char-in {
+  display: inline-block;
+  animation: char-in 300ms var(--ease-out) both;
+}
+@keyframes char-in {
+  from { opacity: 0; filter: blur(7px); }
+  to { opacity: 1; filter: blur(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .char-in { animation: none; opacity: 1; filter: none; }
+}

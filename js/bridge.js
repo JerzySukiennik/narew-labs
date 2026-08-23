@@ -110,6 +110,21 @@ export const IMAGE_WIRE_MODEL = 'g-images';
  * checkpoint. When a second one is trained the Mac will publish a second id and
  * this table gains a row; nothing else has to change.
  */
+/*
+ * The three things this screen can be, before any version is chosen.
+ *
+ * A version number is an answer to "which G-Images", never to "what do I want
+ * to do here" - and the second question comes first. Someone arriving wants to
+ * edit a photo, draw, or paint from words; that they will then be served by
+ * checkpoint 2.1 rather than 1 is a detail of the first answer, so it belongs
+ * one level down rather than flattened into the same list.
+ */
+export const MODEL_FAMILIES = [
+  { id: 'images', name: 'G-Images', tagline: 'Zmienia zdjęcie, które wgrasz.' },
+  { id: 'doodle', name: 'G-Doodle', tagline: 'Rysuje kreską to, co nazwiesz.' },
+  { id: 'weird', name: 'G-Weird', tagline: 'Maluje obraz z samego tekstu.' },
+];
+
 export const IMAGE_MODELS = [
   /* The file landed on 2026-08-19, so the wire is restored exactly as the note
      below prescribed. The 68000-step checkpoint was slimmed on Kaggle to the EMA
@@ -128,17 +143,17 @@ export const IMAGE_MODELS = [
      the same chooser anyway because that is where someone looks to ask "what can
      this page do", and a second picker for one model would be worse. */
   { id: 'g-doodle', name: 'G-Doodle', desc: 'rysuje z tekstu', available: false,
-    wire: 'g-doodle', draws: true },
+    wire: 'g-doodle', draws: true, family: 'doodle' },
 
   /* Not an editor either: text in, picture out, no photo at any point — so it
      swaps the screen like G-Doodle rather than changing who answers. Labelled
      0.9 because that is what it is: one training run, soft pictures, frequent
      misses. Calling it 1.0 would present a test as a finished model. */
   { id: 'g-weird-0-9', name: 'G-Weird 0.9', desc: '62M · maluje z tekstu (test)',
-    available: false, wire: 'g-weird', generates: true },
+    available: false, wire: 'g-weird', generates: true, family: 'weird' },
 
   { id: 'g-image-2-1', name: 'G-Image 2.1', desc: '98M · najnowszy', available: false,
-    wire: 'g-image-2-1' },
+    wire: 'g-image-2-1', family: 'images', short: '2.1' },
 
   /* Bigger, and better at exactly one thing this screen does not do. Both
      versions edited the same photo on 2026-08-19: G-Image 2 got black-and-white
@@ -147,7 +162,7 @@ export const IMAGE_MODELS = [
      "pencil", the whole picture destroyed for "brighter". Its strength is object
      addition, which is why it stays offered and no longer leads. */
   { id: 'g-image-2', name: 'G-Image 2', desc: '70M · lepszy w dodawaniu obiektów',
-    available: false, wire: IMAGE_WIRE_MODEL },
+    available: false, wire: IMAGE_WIRE_MODEL, family: 'images', short: '2' },
 
   /* Recommended, on measurement rather than on age. The templates here are
      filters, and on filters the 22.4M network is plainly the better model: its
@@ -159,7 +174,7 @@ export const IMAGE_MODELS = [
      under the wrong name. Not `legacy` any more, because a version buried behind
      "older versions" is a strange place to keep the default. */
   { id: 'g-image-1', name: 'G-Image 1', desc: '22M · najlepszy w filtrach',
-    available: false, wire: 'g-image-1', recommended: true },
+    available: false, wire: 'g-image-1', recommended: true, family: 'images', short: '1' },
 ];
 
 /*

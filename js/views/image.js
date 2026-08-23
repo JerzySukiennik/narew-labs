@@ -8,8 +8,8 @@
  */
 
 import * as store from '../store.js';
-import { IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from '../bridge.js';
-import { $, $$, esc, toast, reduced, enter } from '../ui.js';
+import { IMAGE_MODELS, MODEL_FAMILIES, DEFAULT_IMAGE_MODEL } from '../bridge.js';
+import { $, $$, esc, toast, reduced, enter, revealText } from '../ui.js';
 import { mountPanel, unmountPanel } from '../doodle-panel.js';
 import { mountPanel as mountWeird, unmountPanel as unmountWeird } from '../weird-panel.js';
 
@@ -173,8 +173,16 @@ export async function mount(root, ctx) {
   root.innerHTML = `
     <div class="page page--wide studio">
       <header class="studio__head" data-enter>
-        <div>
-          <h2 class="title">Image Studio</h2>
+        <div class="studio__where">
+          <!-- Only on a model's page. On the chooser there is nothing to go
+               back to, and a dead arrow is worse than no arrow. -->
+          <button type="button" class="studio__back" id="studio-back"
+                  aria-label="Wróć do wyboru modelu" hidden>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <h2 class="title" id="studio-title">Image Studio</h2>
         </div>
         <!-- The version belongs to the screen, not to one button: it decides
              what every edit here is answered by, so it sits with the title
@@ -192,6 +200,21 @@ export async function mount(root, ctx) {
               aria-label="Wersja modelu" hidden></ul>
         </div>
       </header>
+
+      <!-- The first screen. Three things this page can do, named without a
+           version number on any of them: the number answers "which G-Images",
+           which is a question nobody has yet. -->
+      <section class="chooser" id="chooser">
+        <h3 class="chooser__title" id="chooser-title"></h3>
+        <div class="chooser__grid" role="list">
+          ${MODEL_FAMILIES.map((f) => `
+            <button type="button" class="chooser__card" role="listitem" data-family="${esc(f.id)}">
+              <span class="chooser__dot" data-state="offline" data-family-dot="${esc(f.id)}"></span>
+              <span class="chooser__name">${esc(f.name)}</span>
+              <span class="chooser__tagline muted">${esc(f.tagline)}</span>
+            </button>`).join('')}
+        </div>
+      </section>
 
       <p class="studio__state" id="studio-state" data-enter hidden></p>
 
@@ -280,7 +303,10 @@ export async function mount(root, ctx) {
        unless that version has since been withdrawn, in which case the
        remembered choice would leave the screen permanently refusing to run. */
     model: rememberedModel(),
-    subOpen: false,
+    /* null means the chooser. Kept in memory rather than in the hash so that
+       switching families does not remount the view: the editor keeps a photo
+       already dropped on it and G-Weird keeps its queue. */
+    family: null,
   };
   renderPicker();
 
@@ -290,6 +316,7 @@ export async function mount(root, ctx) {
   mountPanel($('#doodle-host', root), ctx);
   mountWeird($('#weird-host', root), ctx);
   applyMode();
+  showChooser();
 }
 
 export function unmount() {
@@ -307,18 +334,18 @@ export function unmount() {
 const on = (t, ty, fn) => { t.addEventListener(ty, fn); ui.handlers.push([t, ty, fn]); };
 
 function wire() {
+  /* chooser */
+  on($('#chooser', ui.root), 'click', (e) => {
+    const card = e.target.closest('[data-family]');
+    if (card) openFamily(card.dataset.family);
+  });
+  on($('#studio-back', ui.root), 'click', showChooser);
+
   /* picker */
   const pickerBtn = $('#picker-btn', ui.root);
   const pickerMenu = $('#picker-menu', ui.root);
   on(pickerBtn, 'click', () => togglePicker());
   on(pickerMenu, 'click', (e) => {
-    /* The parent row opens the submenu instead of choosing anything — it is a
-       container, not a model. */
-    if (e.target.closest('#legacy-btn')) {
-      ui.subOpen = !ui.subOpen;
-      renderPicker();
-      return;
-    }
     const item = e.target.closest('[data-model]');
     if (!item) return;
     ui.model = item.dataset.model;
@@ -606,96 +633,124 @@ function currentImageModel() {
    than leaving an upload box that nothing will read. Everything stays mounted
    and merely hidden: the panel keeps its canvas and the editor keeps a photo you
    already dropped, so flipping back and forth costs nothing. */
+/** Land on the chooser, with the heading arriving a letter at a time. */
+function showChooser() {
+  ui.family = null;
+  revealText($('#chooser-title', ui.root), 'Wybierz model', { by: 'char', step: 34 });
+  applyMode();
+}
+
+function openFamily(id) {
+  if (!MODEL_FAMILIES.some((f) => f.id === id)) return;
+  ui.family = id;
+  /* Land on the family's own default rather than on whatever was picked last:
+     arriving at G-Images from the chooser should not silently serve G-Doodle
+     because that is what the previous visit left behind. */
+  const inFamily = models().filter((m) => m.family === id && m.wire);
+  if (!inFamily.some((m) => m.id === ui.model)) {
+    const pick = inFamily.find((m) => m.recommended) || inFamily[0];
+    if (pick) { ui.model = pick.id; localStorage.setItem('narew.imageModel', pick.id); }
+  }
+  renderPicker();
+  applyMode();
+  syncState();
+}
+
+/*
+ * Which of the four screens is showing: the chooser, or one of the three
+ * families. Everything stays mounted and is merely hidden, so going back and
+ * forth costs nothing and loses nothing - the editor keeps a photo already
+ * dropped on it, G-Weird keeps its queue.
+ */
 function applyMode() {
   /* renderPicker runs before ui exists on the first paint, so this has to
-     tolerate being called too early rather than throwing — a throw here would
+     tolerate being called too early rather than throwing - a throw here would
      abort the rest of the caller and leave the picker half-rendered. */
   const host = ui?.root && $('#doodle-host', ui.root);
   if (!host) return;
   const weirdHost = $('#weird-host', ui.root);
-  const model = models().find((m) => m.id === ui.model);
-  const drawing = Boolean(model?.draws);
-  const painting = Boolean(model?.generates);
+  const choosing = ui.family === null;
+  const drawing = ui.family === 'doodle';
+  const painting = ui.family === 'weird';
+  const editing = ui.family === 'images';
+
+  $('#chooser', ui.root).hidden = !choosing;
   host.hidden = !drawing;
   if (weirdHost) weirdHost.hidden = !painting;
-  /* Scoped to the editor's own steps, not every .studio__step on the page. The
-     drawing panel is built as one too — it shares the heading and spacing — so
-     hiding the class wholesale hid the very thing being switched to, and picking
-     G-Doodle produced a blank screen. */
-  /* Both panels are built as .studio__step too — they share the heading and
-     spacing — so hiding the class wholesale would hide the very thing being
+
+  /* Both panels are built as .studio__step too - they share the heading and
+     spacing - so hiding the class wholesale would hide the very thing being
      switched to. Each panel's own subtree is excluded. */
   $$('.studio__step', ui.root)
     .filter((el) => !host.contains(el) && !(weirdHost && weirdHost.contains(el)))
-    .forEach((el) => { el.hidden = drawing || painting; });
+    .forEach((el) => { el.hidden = !editing; });
+
+  const family = MODEL_FAMILIES.find((f) => f.id === ui.family);
+  $('#studio-title', ui.root).textContent = family ? family.name : 'Image Studio';
+  $('#studio-back', ui.root).hidden = choosing;
+
+  /* The version picker answers "which G-Images". On a family with one version
+     it would be a menu of one, and on the chooser it would be answering a
+     question that has not been asked yet. */
+  const versions = models().filter((m) => m.family === ui.family && m.wire);
+  $('#picker', ui.root).hidden = choosing || versions.length < 2;
+
+  /* A family is awake when any version of it is. Saying so on the card means
+     the answer to "is this going to work" comes before the click, not after. */
+  const live = models();
+  $$('[data-family-dot]', ui.root).forEach((dot) => {
+    const any = live.some((m) => m.family === dot.dataset.familyDot && m.available);
+    dot.dataset.state = any ? 'online' : 'offline';
+  });
 }
 
 function renderPicker() {
-  const all = models();
   const current = currentImageModel();
   /* Called from here as well as from the click handler, because the picker also
-     re-renders when the Mac's model list arrives — and the layout has to follow
+     re-renders when the Mac's model list arrives - and the layout has to follow
      the selection on every one of those paths, not just the one where a human
      clicked. */
   applyMode();
   const btn = $('#picker-name', ui.root);
   if (!btn) return;
-  btn.textContent = current.name;
+
+  /* Inside a family the number IS the name: "1", "2", "2.1". Repeating
+     "G-Image" on a screen already titled G-Images says nothing, and the three
+     of them line up as versions only when the shared half is dropped. */
+  btn.textContent = current.short || current.name;
   $('#picker-dot', ui.root).dataset.state = current.available ? 'online' : 'offline';
 
-  /* Three states, not two: ready, asleep, and cannot exist. The third one is
-     still listed — the family history is worth seeing — but it is not offered
-     as a choice, because choosing it only ever ends in a refusal. */
-  const row = (m) => {
-    const dead = !m.wire;
-    const state = dead ? (m.legacy ? 'wycofany' : 'planowany') : m.available ? 'gotowy' : 'śpi';
-    return `
+  /* Only this family's versions, and only the ones a Mac could actually serve.
+     A version with no wire name has no checkpoint anywhere, so offering it can
+     only ever end in a refusal. */
+  const versions = models().filter((m) => m.family === ui.family && m.wire);
+
+  const row = (m) => `
     <li role="presentation">
       <button type="button" role="option" data-model="${esc(m.id)}"
-              aria-selected="${m.id === ui.model}" ${dead ? 'disabled aria-disabled="true"' : ''}
-              title="${dead ? esc(unservableReason(m)) : ''}"
-              class="picker__item ${m.id === ui.model ? 'is-current' : ''} ${dead ? 'is-dead' : ''}">
-        <span class="picker__dot" data-state="${dead ? 'dead' : m.available ? 'online' : 'offline'}"></span>
+              aria-selected="${m.id === ui.model}"
+              class="picker__item ${m.id === ui.model ? 'is-current' : ''}">
+        <span class="picker__dot" data-state="${m.available ? 'online' : 'offline'}"></span>
         <span class="picker__body">
-          <span class="picker__title">${esc(m.name)}</span>
+          <span class="picker__title">${esc(m.short || m.name)}</span>
           <span class="picker__desc">${esc(m.desc || '')}</span>
         </span>
-        <span class="picker__state">${state}</span>
+        <span class="picker__state">${m.available ? 'gotowy' : 'śpi'}</span>
       </button>
     </li>`;
-  };
-
-  const legacy = all.filter((m) => m.legacy);
-  const sub = legacy.length ? `
-    <li role="presentation" class="picker__submenu ${ui.subOpen ? 'is-open' : ''}">
-      <button type="button" class="picker__item picker__item--parent" id="legacy-btn"
-              aria-haspopup="true" aria-expanded="${ui.subOpen}">
-        <span class="picker__body">
-          <span class="picker__title">Starsze wersje</span>
-          <span class="picker__desc">${legacy.length} ${legacy.length === 1 ? 'model' : 'modele'}</span>
-        </span>
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-             aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
-      </button>
-      <ul class="picker__sub" role="listbox" aria-label="Starsze wersje">
-        ${legacy.map(row).join('')}
-      </ul>
-    </li>` : '';
 
   /* Same rule as chat's picker: the Mac's heartbeat arrives about once a second
-     and must not rewrite an open menu. Here it also collapsed the "Starsze
-     wersje" submenu the moment it was expanded. Rebuild only on a real change,
-     and only while closed. */
+     and must not rewrite an open menu, which replaced the options under the
+     pointer and threw away whatever had focus. */
   const menu = $('#picker-menu', ui.root);
-  const signature = all.map((m) => `${m.id}:${m.available}:${!!m.wire}`).join('|')
-    + `#${ui.model}#${ui.subOpen}`;
+  const signature = versions.map((m) => `${m.id}:${m.available}`).join('|')
+    + `#${ui.model}#${ui.family}`;
   if (menu.dataset.signature === signature) return;
   if (!menu.hidden) { ui.pickerStale = true; return; }
   ui.pickerStale = false;
   menu.dataset.signature = signature;
 
-  menu.innerHTML = all.filter((m) => !m.legacy).map(row).join('') + sub;
+  menu.innerHTML = versions.map(row).join('');
 }
 
 function togglePicker(open) {
@@ -703,7 +758,7 @@ function togglePicker(open) {
   const next = open === undefined ? menu.hidden : open;
   menu.hidden = !next;
   $('#picker-btn', ui.root).setAttribute('aria-expanded', String(next));
-  if (!next) { ui.subOpen = false; renderPicker(); return; }
+  if (!next) { renderPicker(); return; }
   /* The same entrance chat's picker has, so the two read as one control in two
      places rather than two controls. */
   enter(menu, { opacity: 0, y: -6, scale: 0.96, duration: 0.24 });

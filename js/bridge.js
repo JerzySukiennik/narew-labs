@@ -130,6 +130,13 @@ export const IMAGE_MODELS = [
   { id: 'g-doodle', name: 'G-Doodle', desc: 'rysuje z tekstu', available: false,
     wire: 'g-doodle', draws: true },
 
+  /* Not an editor either: text in, picture out, no photo at any point — so it
+     swaps the screen like G-Doodle rather than changing who answers. Labelled
+     0.9 because that is what it is: one training run, soft pictures, frequent
+     misses. Calling it 1.0 would present a test as a finished model. */
+  { id: 'g-weird-0-9', name: 'G-Weird 0.9', desc: '62M · maluje z tekstu (test)',
+    available: false, wire: 'g-weird', generates: true },
+
   { id: 'g-image-2-1', name: 'G-Image 2.1', desc: '98M · najnowszy', available: false,
     wire: 'g-image-2-1' },
 

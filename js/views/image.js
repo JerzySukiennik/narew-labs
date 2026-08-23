@@ -11,6 +11,7 @@ import * as store from '../store.js';
 import { IMAGE_MODELS, DEFAULT_IMAGE_MODEL } from '../bridge.js';
 import { $, $$, esc, toast, reduced, enter } from '../ui.js';
 import { mountPanel, unmountPanel } from '../doodle-panel.js';
+import { mountPanel as mountWeird, unmountPanel as unmountWeird } from '../weird-panel.js';
 
 /*
  * Each preset carries a `look`: a CSS treatment applied to the sample flower so
@@ -198,6 +199,7 @@ export async function mount(root, ctx) {
            machine: it runs entirely in the browser and keeps working when the
            Mac that answers everything else is asleep. -->
       <div id="doodle-host"></div>
+      <div id="weird-host" hidden></div>
 
       <section class="studio__step" data-enter>
         <h3 class="studio__step-title"><span class="studio__step-n">1</span> Templates</h3>
@@ -286,11 +288,13 @@ export async function mount(root, ctx) {
   syncState();
   upgradePreviews();
   mountPanel($('#doodle-host', root), ctx);
+  mountWeird($('#weird-host', root), ctx);
   applyMode();
 }
 
 export function unmount() {
   unmountPanel();
+  unmountWeird();
   ui?.handlers.forEach(([t, ty, fn]) => t.removeEventListener(ty, fn));
   /* Let go of the node without ending the job: cancelling calls back
      synchronously, which would toast "cancelled" at someone who is simply
@@ -608,16 +612,22 @@ function applyMode() {
      abort the rest of the caller and leave the picker half-rendered. */
   const host = ui?.root && $('#doodle-host', ui.root);
   if (!host) return;
+  const weirdHost = $('#weird-host', ui.root);
   const model = models().find((m) => m.id === ui.model);
   const drawing = Boolean(model?.draws);
+  const painting = Boolean(model?.generates);
   host.hidden = !drawing;
+  if (weirdHost) weirdHost.hidden = !painting;
   /* Scoped to the editor's own steps, not every .studio__step on the page. The
      drawing panel is built as one too — it shares the heading and spacing — so
      hiding the class wholesale hid the very thing being switched to, and picking
      G-Doodle produced a blank screen. */
+  /* Both panels are built as .studio__step too — they share the heading and
+     spacing — so hiding the class wholesale would hide the very thing being
+     switched to. Each panel's own subtree is excluded. */
   $$('.studio__step', ui.root)
-    .filter((el) => !host.contains(el))
-    .forEach((el) => { el.hidden = drawing; });
+    .filter((el) => !host.contains(el) && !(weirdHost && weirdHost.contains(el)))
+    .forEach((el) => { el.hidden = drawing || painting; });
 }
 
 function renderPicker() {

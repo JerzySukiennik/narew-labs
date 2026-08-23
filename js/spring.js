@@ -95,10 +95,17 @@ export function stretch(velocity, gain = 0.018, cap = 0.22) {
 }
 
 /**
- * Pointer tracking with the two details that separate 1:1 dragging from
- * approximate dragging: the grab offset is respected, so nothing jumps under
- * the finger on contact, and the pointer is captured, so the drag survives
- * leaving the element.
+ * Pointer tracking with the details that separate 1:1 dragging from approximate
+ * dragging: nothing jumps under the finger on contact, the drag survives leaving
+ * the element, and - the one that is easy to get wrong - a tap is still a tap.
+ *
+ * The capture is taken on the first real movement rather than on contact.
+ * Capturing at pointerdown retargets the click that follows to the capturing
+ * element, so a handler reading `event.target` sees the track instead of the
+ * button that was pressed and finds nothing: the pill could only be moved by
+ * dragging it, and tapping a model did nothing at all. Capturing only once a
+ * drag has actually begun leaves an ordinary tap dispatching an ordinary click
+ * at the thing under the finger.
  */
 export function drag(el, { onStart, onMove, onEnd, threshold = 4 }) {
   let id = null;
@@ -110,7 +117,6 @@ export function drag(el, { onStart, onMove, onEnd, threshold = 4 }) {
     id = e.pointerId;
     startX = e.clientX;
     moved = false;
-    el.setPointerCapture(id);
     onStart?.(e);
   };
 
@@ -120,13 +126,18 @@ export function drag(el, { onStart, onMove, onEnd, threshold = 4 }) {
     /* Hysteresis before committing to a drag, so a tap with a shaky finger is
        still a tap. */
     if (!moved && Math.abs(dx) < threshold) return;
-    moved = true;
+    if (!moved) {
+      moved = true;
+      /* Now, and not before: past this point it really is a drag, and it should
+         keep tracking even if the finger leaves the control. */
+      try { el.setPointerCapture(id); } catch { /* pointer already gone */ }
+    }
     onMove?.(e, dx);
   };
 
   const up = (e) => {
     if (e.pointerId !== id) return;
-    try { el.releasePointerCapture(id); } catch { /* already gone */ }
+    if (moved) { try { el.releasePointerCapture(id); } catch { /* already gone */ } }
     id = null;
     onEnd?.(e, moved);
   };
@@ -135,10 +146,17 @@ export function drag(el, { onStart, onMove, onEnd, threshold = 4 }) {
   el.addEventListener('pointermove', move);
   el.addEventListener('pointerup', up);
   el.addEventListener('pointercancel', up);
+  /* Because the capture is now lazy, a press released just outside the control
+     never reaches the listeners above, and the half-finished gesture would sit
+     there refusing every later one. The window sees every release. */
+  addEventListener('pointerup', up);
+  addEventListener('pointercancel', up);
   return () => {
     el.removeEventListener('pointerdown', down);
     el.removeEventListener('pointermove', move);
     el.removeEventListener('pointerup', up);
     el.removeEventListener('pointercancel', up);
+    removeEventListener('pointerup', up);
+    removeEventListener('pointercancel', up);
   };
 }

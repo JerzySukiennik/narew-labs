@@ -320,10 +320,37 @@ async function maybeOnboard() {
 
 /* ------------------------------------------------------------------ boot -- */
 
+/**
+ * Take the boot screen down - and take it down whatever happens.
+ *
+ * It was removed in the fade's onComplete, and the fade is driven by rAF, which
+ * a background tab does not run. Load the app in a tab you are not looking at
+ * and the gate froze part-way: a full-viewport layer at z-index 100, stuck at
+ * about 8% opacity, still hit-testable. Every click in the app landed on it, and
+ * the whole page sat under a faint veil that made flat colours read as slightly
+ * different from each other. It never recovered, because the tween that was
+ * supposed to finish the job was the thing that had stopped.
+ *
+ * So the removal no longer depends on the animation finishing. Nothing to look
+ * at means nothing to animate: it just goes. Otherwise the fade runs and a
+ * timer removes it regardless of whether the tween ever reports back.
+ */
 function fadeBoot() {
   const boot = $('#boot');
-  if (reduced()) { boot.remove(); return; }
+  if (!boot) return;
+  /* Never interactive again from this moment, even mid-fade: it is on its way
+     out and has no business catching a click on the way. */
+  boot.style.pointerEvents = 'none';
+
+  if (reduced() || document.hidden || typeof gsap === 'undefined') {
+    boot.remove();
+    return;
+  }
   gsap.to(boot, { opacity: 0, duration: 0.3, onComplete: () => boot.remove() });
+  /* The backstop. If the tab is hidden after this point the tween stops and
+     onComplete never fires, so the element is removed on a timer as well -
+     timers keep running when frames do not. */
+  setTimeout(() => boot.remove(), 1200);
 }
 
 function revealShell() {

@@ -281,9 +281,11 @@
 /* Title and version chooser sit on one line, centred against each other. They
    were bottom-aligned, which put the picker below the cap height of the heading
    and read as two things that had drifted apart rather than a pair. */
+/* The version pill lines up with the title, not with the middle of the
+   title-plus-back stack - the title is the thing it qualifies. */
 .studio__head {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: var(--sp-4);
   flex-wrap: wrap;
@@ -504,37 +506,52 @@
  * number is involved. Deliberately roomy - three choices do not need a dense
  * grid, and the heading is the thing arriving.
  */
-.studio__where { display: flex; align-items: center; gap: var(--sp-3); }
+/* Stacked, so the title keeps the same left edge as every section below it. */
+.studio__where { display: grid; gap: var(--sp-2); justify-items: start; }
 
 .studio__back {
-  display: grid;
-  place-items: center;
-  width: 34px; height: 34px;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-  background: var(--surface-2);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  /* The chevron hangs into the margin so the label - the part you read - lines
+     up with the title under it rather than sitting one glyph to its right. */
+  margin-left: -3px;
+  padding: 4px 2px;
+  border: 0;
+  background: none;
   color: var(--text-muted);
+  font-size: var(--step--1);
+  letter-spacing: var(--track-body);
   cursor: pointer;
-  transition: background var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
-.studio__back:hover { background: var(--surface-3); color: var(--text); }
+.studio__back:hover { color: var(--text); }
+.studio__back svg { transition: transform 160ms var(--ease-out); }
+.studio__back:hover svg { transform: translateX(-2px); }
 
-.chooser { padding: clamp(var(--sp-5), 6vh, var(--sp-8)) 0; }
+/* This screen has one job and the whole viewport to do it in, so it takes the
+   whole viewport: the block centres in what is left under the header instead of
+   sitting in a strip at the top with half a screen of nothing beneath it. */
+.chooser {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: clamp(24rem, 74vh, 52rem);
+  padding: var(--sp-6) 0;
+}
 
 .chooser__title {
-  margin: 0 0 var(--sp-6);
-  font-weight: 600;
+  margin: 0 0 clamp(var(--sp-5), 4vh, var(--sp-7));
   font-family: var(--font-display);
-  font-size: clamp(2rem, 5.5vw, 3.4rem);
+  font-size: clamp(2.4rem, 6.5vw, 4.6rem);
   font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
+  letter-spacing: var(--track-display);
+  line-height: 1.02;
 }
 
 .chooser__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--sp-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr));
+  gap: clamp(var(--sp-4), 1.6vw, var(--sp-5));
 }
 
 .chooser__card {
@@ -542,8 +559,11 @@
   display: grid;
   gap: var(--sp-2);
   justify-items: start;
-  padding: var(--sp-5);
-  border-radius: 20px;
+  align-content: end;
+  gap: var(--sp-3);
+  min-height: clamp(11rem, 26vh, 15rem);
+  padding: clamp(var(--sp-5), 2.4vw, var(--sp-6));
+  border-radius: 24px;
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--text);
@@ -571,15 +591,25 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18), 0 22px 48px rgba(0, 0, 0, 0.22);
 }
 .chooser__card:active { transform: translateY(-1px) scale(0.99); }
-.chooser__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); }
+.chooser__dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  margin-bottom: auto;
+}
 .chooser__dot[data-state='online'] { background: var(--ok, #6ee7a8); }
 .chooser__name {
   font-family: var(--font-display);
-  font-size: var(--step-1);
+  font-size: clamp(1.5rem, 2.2vw, 2rem);
   font-weight: 600;
-  letter-spacing: var(--track-title);
+  letter-spacing: var(--track-display);
+  line-height: 1.1;
 }
-.chooser__tagline { font-size: var(--step--1); line-height: 1.5; max-width: 26ch; }
+.chooser__tagline {
+  font-size: var(--step-0);
+  line-height: 1.45;
+  max-width: 24ch;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .chooser__card, .studio__back { transition: none; }

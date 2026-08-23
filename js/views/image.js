@@ -174,13 +174,16 @@ export async function mount(root, ctx) {
     <div class="page page--wide studio">
       <header class="studio__head" data-enter>
         <div class="studio__where">
-          <!-- Only on a model's page. On the chooser there is nothing to go
-               back to, and a dead arrow is worse than no arrow. -->
-          <button type="button" class="studio__back" id="studio-back"
-                  aria-label="Wróć do wyboru modelu" hidden>
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+          <!-- On its own line above the title, and it says where it goes.
+               Inline it pushed the title 46px right of every other left edge on
+               the page, and a bare arrow only tells you that back exists, not
+               back to what. Hidden on the chooser: there is nothing behind it,
+               and a dead control is worse than no control. -->
+          <button type="button" class="studio__back" id="studio-back" hidden>
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+                 stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
                  aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+            <span>Wybierz model</span>
           </button>
           <h2 class="title" id="studio-title">Image Studio</h2>
         </div>

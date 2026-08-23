@@ -122,10 +122,17 @@ await Promise.race([loadGsap, new Promise((r) => setTimeout(r, 2500))]);
  * is, animate to an explicit end state and drop the inline styles afterwards
  * so an interrupted tween still lands somewhere legible.
  */
+/* The value each property rests at when nothing is being animated. Zero is the
+   neutral for a displacement and one for a multiplier, and getting that backwards
+   is not a subtle bug: a menu given scale 0.96 animated to scale 0, vanished,
+   and then snapped back to full size when clearProps dropped the transform - one
+   click, and it appeared to open, shut and open again. */
+const REST = { opacity: 1, scale: 1, scaleX: 1, scaleY: 1 };
+
 export function enter(target, vars = {}) {
   if (reduced() || document.hidden || typeof gsap === 'undefined') return null;
   const { duration = 0.35, ease = 'power3.out', stagger, ...from } = vars;
-  const to = Object.fromEntries(Object.keys(from).map((k) => [k, k === 'opacity' ? 1 : 0]));
+  const to = Object.fromEntries(Object.keys(from).map((k) => [k, REST[k] ?? 0]));
   return gsap.fromTo(target, from, {
     ...to, duration, ease, stagger, clearProps: Object.keys(from).join(','),
   });

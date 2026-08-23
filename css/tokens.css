@@ -21,9 +21,17 @@
   --wierzba: #a8b8ae;     /* willow leaf, seen from underneath */
 
   /* --------------------------------------------------------- typography -- */
-  --font-display: 'Bricolage Grotesque', 'Instrument Sans', system-ui, sans-serif;
-  --font-body: 'Instrument Sans', system-ui, -apple-system, sans-serif;
-  --font-mono: 'DM Mono', ui-monospace, 'SF Mono', monospace;
+  /* San Francisco where it exists, which on a Mac and an iPhone is everywhere
+     that matters here. -apple-system resolves to the real system face, so this
+     is not an imitation of SF Pro - on Jurek's devices it IS SF Pro, optical
+     sizes and all. Inter carries the same proportions for everyone else, and is
+     the only file actually downloaded. */
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter',
+                  system-ui, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter',
+               system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'SFMono-Regular', 'JetBrains Mono',
+               monospace;
 
   /* Tracking is size-specific: large type reads too loose as it grows, small
      type too tight. One letter-spacing for everything is wrong somewhere. */

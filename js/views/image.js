@@ -686,7 +686,12 @@ function applyMode() {
     .forEach((el) => { el.hidden = !editing; });
 
   const family = MODEL_FAMILIES.find((f) => f.id === ui.family);
-  $('#studio-title', ui.root).textContent = family ? family.name : 'Image Studio';
+  /* On the chooser the heading is "Wybierz model" and the top bar already says
+     Image Studio, so a second "Image Studio" here is the same word three times
+     on one screen. Inside a family the title earns its place: it is the only
+     thing naming which model you are looking at. */
+  $('#studio-title', ui.root).textContent = family ? family.name : '';
+  $('#studio-title', ui.root).hidden = choosing;
   $('#studio-back', ui.root).hidden = choosing;
 
   /* The version picker answers "which G-Images". On a family with one version

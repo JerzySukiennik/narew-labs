@@ -523,6 +523,7 @@
 
 .chooser__title {
   margin: 0 0 var(--sp-6);
+  font-weight: 600;
   font-family: var(--font-display);
   font-size: clamp(2rem, 5.5vw, 3.4rem);
   font-weight: 600;
@@ -537,30 +538,48 @@
 }
 
 .chooser__card {
+  position: relative;
   display: grid;
   gap: var(--sp-2);
   justify-items: start;
   padding: var(--sp-5);
-  border-radius: var(--r-lg);
+  border-radius: 20px;
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--text);
   text-align: left;
   cursor: pointer;
-  transition: border-color var(--t-fast) var(--ease-out),
-              background var(--t-fast) var(--ease-out),
-              transform var(--t-fast) var(--ease-out);
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14), 0 10px 28px rgba(0, 0, 0, 0.1);
+  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1),
+              border-color 200ms var(--ease-out),
+              box-shadow 200ms var(--ease-out);
+}
+/* A single hairline of light along the top edge, the way a real surface catches
+   it. Enough to give the card a body; not enough to notice as an effect. */
+.chooser__card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent,
+    color-mix(in srgb, white 22%, transparent), transparent);
 }
 .chooser__card:hover {
   border-color: var(--accent-line);
-  background: var(--surface-2);
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18), 0 22px 48px rgba(0, 0, 0, 0.22);
 }
-.chooser__card:active { transform: translateY(0); }
+.chooser__card:active { transform: translateY(-1px) scale(0.99); }
 .chooser__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); }
 .chooser__dot[data-state='online'] { background: var(--ok, #6ee7a8); }
-.chooser__name { font-family: var(--font-display); font-size: var(--step-1); font-weight: 600; }
-.chooser__tagline { font-size: var(--step--1); line-height: 1.5; }
+.chooser__name {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-weight: 600;
+  letter-spacing: var(--track-title);
+}
+.chooser__tagline { font-size: var(--step--1); line-height: 1.5; max-width: 26ch; }
 
 @media (prefers-reduced-motion: reduce) {
   .chooser__card, .studio__back { transition: none; }
@@ -589,8 +608,11 @@
   cursor: text;
 }
 
+/* inline-block, not inline: the outline drawn on Enter is measured from this
+   box, and an inline box that wraps reports the union of its line boxes rather
+   than the shape you can see. */
 .weird__line {
-  display: inline;
+  display: inline-block;
   font-family: var(--font-display);
   font-size: clamp(1.6rem, 4.4vw, 3rem);
   font-weight: 500;
@@ -625,50 +647,129 @@
   border: 0; padding: 0;
 }
 
-/* The prompt in flight: outlined where it was written, then shrinking into its
-   tile. Fixed-position so it travels over the page rather than inside it. */
+/* The prompt in flight. Three beats, each with its own timing, all on one
+   element: the outline closes into a ball, the letters run to the middle of it,
+   and the ball is thrown at the tile. Fixed-position so it travels over the page
+   rather than inside it. */
 .weird__flight {
   position: fixed;
   z-index: 60;
-  padding: var(--sp-2) var(--sp-3);
   border-radius: var(--r-md);
   border: 1px solid transparent;
-  font-family: var(--font-display);
-  font-size: clamp(1.6rem, 4.4vw, 3rem);
-  line-height: 1.25;
-  color: var(--text);
   overflow: hidden;
   pointer-events: none;
-  transition: border-color 220ms var(--ease-out), background 220ms var(--ease-out);
+  transition:
+    left 300ms cubic-bezier(0.5, 0, 0.2, 1),
+    top 300ms cubic-bezier(0.5, 0, 0.2, 1),
+    width 300ms cubic-bezier(0.5, 0, 0.2, 1),
+    height 300ms cubic-bezier(0.5, 0, 0.2, 1),
+    border-radius 300ms cubic-bezier(0.5, 0, 0.2, 1),
+    border-color 200ms var(--ease-out),
+    background 300ms var(--ease-out);
 }
-.weird__flight[data-drawn='true'] {
+
+/* Beat one: the line, drawn the size of what was written. */
+.weird__flight[data-phase='outline'] {
   border-color: var(--accent-line, var(--accent));
-  background: var(--surface-2);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+/* Beat two: a ball. */
+.weird__flight[data-phase='gather'] {
+  border-radius: 50%;
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface-2));
+}
+
+/* Beat three: thrown. Uniform scale on a round thing, so there is nothing left
+   to distort - which is the whole reason the text gathered first. */
+.weird__flight[data-phase='throw'] {
+  border-radius: 50%;
+  transition:
+    transform 440ms cubic-bezier(0.35, 0, 0.25, 1),
+    opacity 160ms ease 300ms,
+    background 440ms var(--ease-out);
+  background: color-mix(in srgb, var(--accent) 34%, var(--surface-2));
+  opacity: 0;
+}
+
+/* Each letter keeps its place until it runs for the middle - the arrival
+   animation played backwards, blur and all. */
+.weird__flight-char {
+  position: absolute;
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 4.4vw, 3rem);
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: var(--text);
+  white-space: pre;
+  transition:
+    transform 260ms cubic-bezier(0.5, 0, 0.75, 0),
+    opacity 220ms ease,
+    filter 220ms ease;
+}
+.weird__flight[data-phase='gather'] .weird__flight-char,
+.weird__flight[data-phase='throw'] .weird__flight-char {
+  transform: translate(var(--dx), var(--dy)) scale(0.25);
+  filter: blur(6px);
+  opacity: 0;
 }
 
 /* ------------------------------------------------------- g-weird queue -- */
+/* A shelf the tiles land on. The edge is a fading gradient rather than a 1px
+   rule: a hard divider under floating chrome announces a boundary, a fade just
+   says the page continues underneath. */
 .weird__queue {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp-3);
-  padding-top: var(--sp-4);
-  border-top: 1px solid var(--line);
+  padding-top: var(--sp-5);
   min-height: 96px;
   align-content: flex-start;
 }
-.weird__queue:empty { border-top-color: transparent; }
+.weird__queue::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent, var(--line-strong) 12%, var(--line-strong) 88%, transparent);
+  opacity: 0.75;
+}
+.weird__queue:empty::before { opacity: 0; }
 
 .weird__tile {
   position: relative;
   width: 84px; height: 84px;
-  border-radius: var(--r-md);
+  border-radius: 18px;
   overflow: hidden;
   background: var(--surface-2);
   border: 1px solid var(--line);
   cursor: pointer;
   flex: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 8px 20px rgba(0, 0, 0, 0.12);
+  transition: transform 160ms cubic-bezier(0.32, 0.72, 0, 1),
+              box-shadow 160ms var(--ease-out);
 }
+/* Lifts toward the pointer, and takes the press. Only once it has something to
+   show - lifting a tile that is still painting promises a picture. */
+.weird__tile[data-status='done']:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 16px 32px rgba(0, 0, 0, 0.24);
+}
+.weird__tile[data-status='done']:active { transform: translateY(-1px) scale(0.99); }
 .weird__tile[data-status='pending'] { cursor: default; }
+
+/* The tile takes the hit, so the ball is felt landing rather than just ceasing
+   to exist somewhere near it. */
+.weird__tile[data-landed] { animation: weird-land 340ms var(--ease-out); }
+@keyframes weird-land {
+  0% { transform: scale(0.82); }
+  55% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
 
 /* While the Mac paints there is nothing to show, so the tile shows movement
    instead of a number: a gradient sliding under a spinner. It is honest about
@@ -743,6 +844,8 @@
 .weird__tile[data-status='cancelled'] { border-style: dashed; opacity: 0.6; }
 
 /* ------------------------------------------------------ g-weird viewer -- */
+/* The scrim materialises rather than fading: blur and tint arrive together, so
+   it reads as glass sliding in front of the page instead of a grey sheet. */
 .weird__viewer {
   position: fixed;
   inset: 0;
@@ -751,17 +854,41 @@
   place-items: center;
   gap: var(--sp-5);
   padding: var(--sp-6);
-  background: color-mix(in srgb, var(--bg) 88%, black);
-  backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--bg) 82%, black);
+  backdrop-filter: blur(0px) saturate(120%);
+  transition: backdrop-filter 320ms var(--ease-out), background 320ms var(--ease-out);
 }
-.weird__viewer-figure { display: grid; gap: var(--sp-3); justify-items: center; margin: 0; }
+.weird__viewer[data-open='true'] { backdrop-filter: blur(22px) saturate(140%); }
+.weird__viewer[data-open='false'] { backdrop-filter: blur(0px); background: transparent; }
+.weird__viewer-figure {
+  display: grid;
+  gap: var(--sp-4);
+  justify-items: center;
+  margin: 0;
+  /* The FLIP scales this whole group from the tile it came from, so the origin
+     has to be its middle - the point both boxes are measured around. */
+  transform-origin: center center;
+  will-change: transform;
+}
 .weird__viewer-figure img {
   max-width: min(78vw, 620px);
   max-height: 66vh;
-  border-radius: var(--r-lg);
+  border-radius: 22px;
   image-rendering: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 32px 80px rgba(0, 0, 0, 0.45);
 }
-.weird__viewer-figure figcaption { font-size: var(--step--1); text-align: center; }
+.weird__viewer-figure figcaption {
+  font-size: var(--step--1);
+  text-align: center;
+  letter-spacing: var(--track-body);
+  opacity: 0;
+  transition: opacity 260ms var(--ease-out) 200ms;
+}
+.weird__viewer[data-open='true'] figcaption { opacity: 1; }
+
+/* The picture carries the flip, so it needs its own compositing layer and must
+   not be squeezed by the grid while it is mid-travel. */
+.weird__viewer-figure img { will-change: transform; transform-origin: center center; }
 
  /* Fixed, not absolute. The viewer is a grid container, and an absolutely
    positioned child of one resolves its offsets against the grid area rather
@@ -773,24 +900,103 @@
   width: 40px; height: 40px;
   display: grid; place-items: center;
   border-radius: 50%;
-  border: 1px solid var(--line);
-  background: var(--surface);
+  border: 1px solid color-mix(in srgb, white 16%, transparent);
+  background: color-mix(in srgb, var(--surface) 62%, transparent);
+  backdrop-filter: blur(18px) saturate(160%);
   color: var(--text);
   cursor: pointer;
 }
 
+/* One floating group of actions, on the same material as the close button so
+   the two read as the same layer of chrome rather than two separate widgets. */
 .weird__viewer-actions {
   position: fixed;
   left: 50%;
   bottom: var(--sp-6);
   transform: translateX(-50%);
   display: flex;
-  gap: var(--sp-3);
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, white 14%, transparent);
+  background: color-mix(in srgb, var(--surface) 58%, transparent);
+  backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
 }
+.weird__viewer-actions .btn { border: 0; border-radius: 999px; }
 
 @media (prefers-reduced-motion: reduce) {
   .weird__caret { animation: none; }
+  .weird__tile[data-landed] { animation: none; }
   .weird__tile-shimmer { animation: none; }
   .weird__tile::after { animation: none; }
   .weird__tile-img { transition: none; opacity: 1; transform: none; }
+}
+
+/* ------------------------------------------------ one surface language -- */
+/*
+ * G-Images and G-Doodle get what G-Weird got, so the three read as one product
+ * rather than three screens that happen to share a sidebar: a softer corner, a
+ * hairline of light along the top edge where a real surface would catch it, a
+ * shadow with two terms (a tight contact shadow plus a wide ambient one), and a
+ * lift toward the pointer that takes the press.
+ *
+ * Nothing here is decoration for its own sake - depth is what says "this is a
+ * thing you can pick up", and the press is what proves the screen heard you
+ * before it has done anything.
+ */
+.preset, .doodle__stage, .studio__said, .weird__tile {
+  border-radius: 18px;
+}
+
+.preset {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14), 0 10px 26px rgba(0, 0, 0, 0.1);
+  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1),
+              border-color 200ms var(--ease-out),
+              box-shadow 200ms var(--ease-out);
+}
+.preset::before,
+.doodle__stage::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent,
+    color-mix(in srgb, white 20%, transparent), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+.preset:hover {
+  border-color: var(--accent-line);
+  transform: translateY(-4px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18), 0 22px 44px rgba(0, 0, 0, 0.2);
+}
+.preset:active { transform: translateY(-1px) scale(0.99); }
+
+.doodle__stage {
+  position: relative;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 6%, transparent),
+              0 12px 32px rgba(0, 0, 0, 0.14);
+}
+
+/* Chips in both panels: the same pill, the same press. */
+.doodle__chip, .vocab__chip {
+  border-radius: 999px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* The version picker is chrome floating over content, so it is a material and
+   not a panel: content passes under it rather than stopping at it. */
+.picker__menu {
+  background: color-mix(in srgb, var(--surface) 74%, transparent);
+  backdrop-filter: blur(24px) saturate(170%);
+  border-color: color-mix(in srgb, white 12%, var(--line-strong));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preset { transition: none; }
+  .preset:hover, .preset:active { transform: none; }
+  .weird__tile[data-status='done']:hover { transform: none; }
 }

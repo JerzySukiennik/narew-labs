@@ -505,10 +505,14 @@ document.addEventListener('keydown', (e) => {
 export function enterView(root) {
   const parts = $$('[data-enter]', root);
   if (!parts.length) return;
-  if (reduced()) { gsap.set(parts, { opacity: 1, y: 0 }); return; }
-  gsap.fromTo(parts,
-    { opacity: 0, y: 14 },
-    { opacity: 1, y: 0, duration: 0.5, stagger: 0.045, ease: 'power3.out', clearProps: 'transform' });
+  /* Through enter(), which declines to touch anything when no frame is coming.
+     Calling gsap.fromTo here directly wrote opacity 0 onto every section of the
+     view and depended on the ticker to walk it back - and the ticker is rAF,
+     which a background tab does not run. Open the app in a tab you are not
+     looking at, come back, and the entire screen was blank: present, focusable,
+     and invisible. clearProps only listed transform, so even a finished tween
+     left the opacity behind. */
+  enter(parts, { opacity: 0, y: 14, duration: 0.5, stagger: 0.045 });
 }
 
 /* ------------------------------------------------------------------ misc -- */

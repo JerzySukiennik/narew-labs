@@ -25,7 +25,7 @@
  * the browser's storage nor the account is the right home for them yet.
  */
 
-import { $, esc, reduced, enter } from './ui.js';
+import { $, $$, esc, reduced, enter } from './ui.js';
 
 /* One picture is ~256 sampled tokens at roughly 25 ms, so about seven seconds
    of Mac. The timeout is generous against a cold model load, which happens once
@@ -70,10 +70,18 @@ function syncText() {
 
   if (value === shown) return;
 
-  /* A deletion, or a paste that replaced the middle: rebuild without animating,
-     because nothing here is arriving. */
+  /* A deletion, or a paste that replaced the middle: rebuilt without animating,
+     because nothing here is arriving - but still one span per letter. Plain text
+     here used to leave the line with nothing for the gather to pick up, so
+     anything typed, partly deleted and re-typed collapsed into an empty ball. */
   if (!value.startsWith(shown)) {
-    node.textContent = value;
+    node.textContent = '';
+    [...value].forEach((ch) => {
+      const span = document.createElement('span');
+      span.className = 'weird__char';
+      span.textContent = ch;
+      node.append(span);
+    });
     ui.shown = value;
     updateHint();
     return;
@@ -126,7 +134,10 @@ function commit() {
   const item = {
     id: nextId++, prompt, status: 'pending', image: null, handle: null,
   };
-  queue.push(item);
+  /* Newest at the front. The one you just wrote is the one you are waiting on,
+     so it belongs where the eye already is rather than at the end of a row that
+     grows away from you. */
+  queue.unshift(item);
   renderQueue();
   start(item);
 
@@ -137,45 +148,91 @@ function commit() {
 }
 
 /**
- * The prompt's own outline, drawn and then flown into place.
+ * Enter, in three beats: outline, gather, throw.
  *
- * A clone travels rather than the text itself: the line has to keep taking
- * keystrokes the moment Enter is released, and an element mid-flight cannot also
- * be the thing you are typing into.
+ * The first version scaled a copy of the text straight into the tile's box, and
+ * because a line of words and a small square have nothing like the same
+ * proportions that meant scaling X by about a fifth and Y by about a twentieth.
+ * Letters do not survive that: they smeared. Non-uniform scale is never a morph,
+ * it is a squash, and text is the worst possible thing to squash.
+ *
+ * So nothing is scaled non-uniformly any more, and the text does not travel at
+ * all. It gathers: every letter runs at the centre of the line, shrinking and
+ * blurring out - the arrival animation played backwards - while the outline
+ * closes around them into a ball. Only then does the ball move, and a ball can
+ * be flung anywhere without distorting, because it has no inside left to
+ * distort. What lands is a shape, and the shape becomes the tile.
  */
 function flyToQueue(line, tile) {
-  if (!tile) return;
+  if (!tile || reduced()) return;
   const from = line.getBoundingClientRect();
   const to = tile.getBoundingClientRect();
-  if (reduced() || !from.width || !to.width) return;
+  if (!from.width || !to.width) return;
 
+  const BALL = 44;
   const ghost = document.createElement('div');
   ghost.className = 'weird__flight';
-  ghost.textContent = ui.shown;
   Object.assign(ghost.style, {
     left: `${from.left}px`, top: `${from.top}px`,
     width: `${from.width}px`, height: `${from.height}px`,
   });
+
+  /* The letters are re-created rather than cloned so each can be told where the
+     centre is; a clone would carry the arrival animation and start over. */
+  const cx = from.width / 2;
+  const cy = from.height / 2;
+  [...$$('.weird__char', line)].forEach((src) => {
+    const r = src.getBoundingClientRect();
+    const ch = document.createElement('span');
+    ch.className = 'weird__flight-char';
+    ch.textContent = src.textContent;
+    ch.style.left = `${r.left - from.left}px`;
+    ch.style.top = `${r.top - from.top}px`;
+    /* Each letter's own path to the middle, so they converge instead of all
+       sliding the same way. */
+    ch.style.setProperty('--dx', `${cx - (r.left - from.left) - r.width / 2}px`);
+    ch.style.setProperty('--dy', `${cy - (r.top - from.top) - r.height / 2}px`);
+    ghost.append(ch);
+  });
   document.body.append(ghost);
 
   /* Synchronous reflow rather than a rAF callback: rAF does not run in a
-     background tab, and an animation that never starts leaves this fixed-
-     position clone parked over the page forever. */
+     background tab, and an animation that never starts would leave this
+     fixed-position clone parked over the page for good. */
   void ghost.offsetHeight;
-  ghost.dataset.drawn = 'true';
+  ghost.dataset.phase = 'outline';
 
-  const settle = () => {
-    ghost.style.transition = 'transform 480ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms ease 300ms';
-    ghost.style.transformOrigin = 'top left';
+  const at = (ms, fn) => setTimeout(fn, ms);
+
+  /* Beat two: letters run to the middle, the outline closes into a ball around
+     the same point it was already centred on, so nothing appears to jump. */
+  at(200, () => {
+    ghost.dataset.phase = 'gather';
+    Object.assign(ghost.style, {
+      left: `${from.left + cx - BALL / 2}px`,
+      top: `${from.top + cy - BALL / 2}px`,
+      width: `${BALL}px`, height: `${BALL}px`,
+    });
+  });
+
+  /* Beat three: thrown to the tile. Transform only, and uniform - the ball is
+     round, so the one scale factor is the whole story. */
+  at(520, () => {
+    const ball = ghost.getBoundingClientRect();
+    ghost.dataset.phase = 'throw';
     ghost.style.transform =
-      `translate(${to.left - from.left}px, ${to.top - from.top}px) `
-      + `scale(${to.width / from.width}, ${to.height / from.height})`;
-    ghost.style.opacity = '0';
-    setTimeout(() => ghost.remove(), 700);
-  };
-  /* Let the outline finish drawing before it starts moving - the two reading as
-     one gesture is the reason the line is there at all. */
-  setTimeout(settle, 260);
+      `translate(${to.left + to.width / 2 - (ball.left + ball.width / 2)}px, `
+      + `${to.top + to.height / 2 - (ball.top + ball.height / 2)}px) `
+      + `scale(${to.width / BALL})`;
+  });
+
+  at(980, () => {
+    ghost.remove();
+    /* The tile takes the hit, so the ball is felt landing rather than just
+       ceasing to exist somewhere near it. */
+    tile.dataset.landed = 'true';
+    at(360, () => { delete tile.dataset.landed; });
+  });
 }
 
 function flashHint(text) {
@@ -195,7 +252,11 @@ function start(item) {
   item.handle = ui.ctx.bridge.run(
     { model: 'g-weird', text: item.prompt },
     (out) => {
-      if (out.image) { item.image = out.image; item.status = 'done'; }
+      /* Repaint the moment the picture lands, not when the job is later marked
+         finished. Those are two separate messages, and in the gap between them
+         the item already had its image - so the tile went on spinning while
+         clicking it opened the finished picture full screen. */
+      if (out.image) { item.image = out.image; item.status = 'done'; paint(item); }
       if (out.done) {
         item.handle = null;
         if (!item.image) {
@@ -295,7 +356,7 @@ function stop(id) {
 
 /* ---------------------------------------------------------------- viewer -- */
 
-function openViewer(item) {
+function openViewer(item, origin) {
   if (!item?.image) return;
   const node = document.createElement('div');
   node.className = 'weird__viewer';
@@ -313,12 +374,56 @@ function openViewer(item) {
       <button type="button" class="btn" id="wv-share" hidden>Udostępnij</button>
     </div>`;
   document.body.append(node);
-  enter(node, { opacity: 0, duration: 0.2 });
 
+  /* The picture grows out of the tile that was clicked and shrinks back into
+     it. A thing that appears from nowhere has to be located all over again on
+     the way back; a thing that comes from a place you were already looking at
+     keeps its identity, and closing it puts it back where you know it lives. */
+  const figure = $('.weird__viewer-figure', node);
+  const big = $('img', node);
+  const from = origin?.getBoundingClientRect();
+
+  /* The picture is what travels, not the figure around it. Both the tile and
+     the full view are square - the model paints squares - so one scale factor
+     covers both axes exactly, and nothing is squashed on the way. Scaling the
+     figure instead meant including the caption, whose height belongs to no
+     square at all: that came out 0.33 wide by 0.29 tall, which is the same
+     distortion the prompt text used to suffer. The caption fades instead. */
+  const flip = (open) => {
+    if (reduced() || !from?.width) { node.dataset.open = String(open); return; }
+    const to = big.getBoundingClientRect();
+    if (!to.width) { node.dataset.open = String(open); return; }
+    const scale = from.width / to.width;
+    const dx = from.left + from.width / 2 - (to.left + to.width / 2);
+    const dy = from.top + from.height / 2 - (to.top + to.height / 2);
+    const shut = `translate(${dx}px, ${dy}px) scale(${scale})`;
+
+    big.style.transition = 'none';
+    big.style.transform = open ? shut : 'none';
+    /* Committed with a forced reflow rather than in a rAF callback, which does
+       not run in a background tab - the same trap that once swallowed the first
+       chat message. */
+    void big.offsetHeight;
+    big.style.transition =
+      'transform 440ms cubic-bezier(0.32, 0.72, 0, 1), border-radius 440ms ease';
+    big.style.transform = open ? 'none' : shut;
+    /* The tile's corner radius on the way out, the picture's on the way in. */
+    big.style.borderRadius = open ? '' : '18px';
+    figure.style.transition = 'opacity 200ms ease';
+    node.dataset.open = String(open);
+  };
+  flip(true);
+
+  let closing = false;
   const close = () => {
-    node.remove();
+    if (closing) return;
+    closing = true;
     document.removeEventListener('keydown', onKey);
-    $('#weird-ghost', ui.host)?.focus({ preventScroll: true });
+    flip(false);
+    setTimeout(() => {
+      node.remove();
+      $('#weird-ghost', ui.host)?.focus({ preventScroll: true });
+    }, reduced() ? 0 : 380);
   };
   const onKey = (e) => { if (e.key === 'Escape') close(); };
   document.addEventListener('keydown', onKey);
@@ -380,7 +485,7 @@ export function mountPanel(host, ctx) {
     const stopBtn = e.target.closest('[data-stop]');
     if (stopBtn) { stop(stopBtn.dataset.stop); return; }
     const tile = e.target.closest('[data-item]');
-    if (tile) openViewer(queue.find((q) => q.id === Number(tile.dataset.item)));
+    if (tile) openViewer(queue.find((q) => q.id === Number(tile.dataset.item)), tile);
   });
 
   /* Whatever was queued before leaving for another model is still here. */

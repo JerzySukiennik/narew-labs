@@ -23,6 +23,17 @@
   })();
 </script>
 
+<!-- The page's own ground, painted before a single stylesheet has been asked
+     for. Until tokens.css arrives the browser paints its default behind the
+     document, and any region the boot screen does not cover - the overscroll
+     band above and below it, most visibly on a trackpad - is that default
+     rather than ours. Declaring both here means there is no moment and no strip
+     where the ground is a colour we did not choose. -->
+<style>
+  html { background: #0c0c0b; color-scheme: dark; }
+  html[data-theme='light'] { background: #fbfaf7; color-scheme: light; }
+</style>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- Only the fallback is downloaded. Apple devices resolve -apple-system to the

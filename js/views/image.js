@@ -11,7 +11,8 @@ import * as store from '../store.js';
 import { IMAGE_MODELS, MODEL_FAMILIES, DEFAULT_IMAGE_MODEL } from '../bridge.js';
 import { $, $$, esc, toast, reduced, enter, revealText } from '../ui.js';
 import { mountPanel, unmountPanel } from '../doodle-panel.js';
-import { mountPanel as mountWeird, unmountPanel as unmountWeird } from '../weird-panel.js';
+import { mountPanel as mountWeird, unmountPanel as unmountWeird,
+         setVersion as setWeirdVersion } from '../weird-panel.js';
 import { mountNav, unmountNav } from '../pill-nav.js';
 import { mountSlider, unmountSlider } from '../version-slider.js';
 
@@ -666,6 +667,12 @@ function applyMode() {
   $('#chooser', ui.root).hidden = !choosing;
   host.hidden = !drawing;
   if (weirdHost) weirdHost.hidden = !painting;
+  /* The slider writes ui.model; the panel submits jobs, so it has to be told
+     which wire the current version maps to. */
+  if (painting) {
+    const picked = models().find((m) => m.id === ui.model && m.family === 'weird');
+    setWeirdVersion(picked?.wire);
+  }
 
   /* Both panels are built as .studio__step too - they share the heading and
      spacing - so hiding the class wholesale would hide the very thing being

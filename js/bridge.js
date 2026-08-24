@@ -149,8 +149,24 @@ export const IMAGE_MODELS = [
      swaps the screen like G-Doodle rather than changing who answers. Labelled
      0.9 because that is what it is: one training run, soft pictures, frequent
      misses. Calling it 1.0 would present a test as a finished model. */
-  { id: 'g-weird-0-9', name: 'G-Weird 0.9', desc: '62M · maluje z tekstu (test)',
-    available: false, wire: 'g-weird', generates: true, family: 'weird' },
+  /* Two versions of ONE model. The transformer and the codebook are identical;
+     only the decoder that turns codes into pixels differs, so the same prompt and
+     seed give the same picture rendered two ways. They are listed separately
+     because the version slider is how this page expresses exactly that — a
+     ladder within a family — and 1 is not a different painter, just a steadier
+     hand.
+
+     1 is 8000 steps of adversarial fine-tuning with the encoder and codebook
+     frozen: reconstruction error 10.3/255 against 15.7, real detail where there
+     was smear, at the cost of a fine crackle. 0.9 is the original — softer, more
+     oil-painted, and kept because which one reads better is taste. */
+  { id: 'g-weird-1', name: 'G-Weird 1', desc: '62M · ostrzejszy dekoder',
+    available: false, wire: 'g-weird-1', generates: true, family: 'weird',
+    short: '1' },
+
+  { id: 'g-weird', name: 'G-Weird 0.9', desc: '62M · miękki, malowany',
+    available: false, wire: 'g-weird', generates: true, family: 'weird',
+    short: '0.9' },
 
   { id: 'g-image-2-1', name: 'G-Image 2.1', desc: '98M · najnowszy', available: false,
     wire: 'g-image-2-1', family: 'images', short: '2.1' },

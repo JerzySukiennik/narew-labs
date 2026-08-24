@@ -42,7 +42,7 @@ const TEMPLATE = `
       <div class="weird__line" id="weird-line">
         <span class="weird__text" id="weird-text"></span><span class="weird__caret" id="weird-caret"></span>
       </div>
-      <p class="weird__hint muted" id="weird-hint">pisz po angielsku · G-Weird 0.9, test</p>
+      <p class="weird__hint muted" id="weird-hint"></p>
 
       <!-- Invisible, but the real one: it owns focus, the caret position, the
            mobile keyboard and paste. What you see are spans mirroring it. -->
@@ -255,16 +255,42 @@ function flashHint(text) {
   hint.textContent = text;
   clearTimeout(ui.hintTimer);
   ui.hintTimer = setTimeout(() => {
-    hint.textContent = 'pisz po angielsku · G-Weird 0.9, test';
+    restHint();
     updateHint();
   }, 4000);
+}
+
+/* --------------------------------------------------------------- version -- */
+
+/* Which decoder renders the codes. Both versions share one transformer and one
+   codebook — only the decoder differs, so the same prompt and seed give the same
+   picture drawn two ways. The page owns the choice (the same version slider
+   G-Images uses), so the panel is told rather than deciding, and a version
+   switched mid-draw applies to the next picture instead of corrupting this one. */
+let wire = 'g-weird-1';
+
+export function setVersion(next) {
+  if (!next || next === wire) return;
+  wire = next;
+  /* The resting hint names the version, so it has to follow the slider rather
+     than stay at whatever was hardcoded when the panel was written. */
+  if (ui) restHint();
+}
+
+function versionLabel() {
+  return wire === 'g-weird' ? '0.9' : '1';
+}
+
+function restHint() {
+  const hint = $('#weird-hint', ui.host);
+  if (hint) hint.textContent = `pisz po angielsku · G-Weird ${versionLabel()}, test`;
 }
 
 /* ----------------------------------------------------------------- queue -- */
 
 function start(item) {
   item.handle = ui.ctx.bridge.run(
-    { model: 'g-weird', text: item.prompt },
+    { model: wire, text: item.prompt },
     (out) => {
       /* Repaint the moment the picture lands, not when the job is later marked
          finished. Those are two separate messages, and in the gap between them
@@ -505,6 +531,7 @@ function focusWhenShown(host, ghost) {
 export function mountPanel(host, ctx) {
   host.innerHTML = TEMPLATE;
   ui = { host, ctx, shown: '', hintTimer: null, handlers: [] };
+  restHint();
 
   const on = (target, type, fn) => {
     target.addEventListener(type, fn);

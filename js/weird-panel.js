@@ -144,6 +144,7 @@ function commit() {
   queue.unshift(item);
   renderQueue();
   start(item);
+  restHint();
 
   const line = $('#weird-line', ui.host);
   const tile = $(`[data-item="${item.id}"]`, ui.host);
@@ -283,7 +284,18 @@ function versionLabel() {
 
 function restHint() {
   const hint = $('#weird-hint', ui.host);
-  if (hint) hint.textContent = `pisz po angielsku · G-Weird ${versionLabel()}, test`;
+  if (!hint) return;
+  /* While anything is being painted the hint reports that instead of the usual
+     advice. The tile with the spinner lands at the bottom of a tall page, far
+     below the line you just typed into, so after pressing Enter there was
+     nothing where the eye actually was — measured, not guessed: the spinner
+     renders correctly and is simply off-screen.
+     The count matters because jobs run one at a time: three in the queue is
+     three times the wait, and saying so beats looking stuck. */
+  const busy = queue.filter((i) => i.status === 'pending').length;
+  hint.textContent = busy
+    ? (busy === 1 ? 'maluję… (~7 s)' : `maluję… ${busy} w kolejce`)
+    : `pisz po angielsku · G-Weird ${versionLabel()}, test`;
 }
 
 /* ----------------------------------------------------------------- queue -- */
@@ -296,7 +308,9 @@ function start(item) {
          finished. Those are two separate messages, and in the gap between them
          the item already had its image - so the tile went on spinning while
          clicking it opened the finished picture full screen. */
-      if (out.image) { item.image = out.image; item.status = 'done'; paint(item); }
+      if (out.image) {
+        item.image = out.image; item.status = 'done'; paint(item); restHint();
+      }
       if (out.done) {
         item.handle = null;
         if (!item.image) {
@@ -306,6 +320,9 @@ function start(item) {
           item.note = out.text || 'Model nie zwrócił obrazu.';
         }
         paint(item);
+        /* Also on the failure path: a job that ended without a picture must
+           still clear "maluję…", or the line claims work that stopped. */
+        restHint();
       }
     },
     { idleTimeout: IDLE_TIMEOUT },

@@ -349,3 +349,58 @@ button, .btn, .chooser__card, .preset, .doodle__chip, .vocab__chip {
   .preset:active, .doodle__chip:active, .vocab__chip:active { transform: none; }
   button, .btn, .chooser__card, .preset, .doodle__chip, .vocab__chip { transition: none; }
 }
+
+/* ------------------------------------------------------------- surface -- */
+/*
+ * Grain over everything. Flat digital colour has no material to it - it reads
+ * as an absence rather than a surface - and a very small amount of noise gives
+ * the black something to be made of. Drawn as an SVG turbulence data URI, so it
+ * is a few hundred bytes of markup rather than an image request, and fixed so
+ * it never scrolls with content and never gives itself away as a texture.
+ */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+/* Anyone who has asked for less visual noise gets exactly that. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .grain { display: none; }
+}
+
+/* Off-screen until focused, which is the only moment it means anything. */
+.skip {
+  position: fixed;
+  top: var(--sp-3);
+  left: var(--sp-3);
+  z-index: 200;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  text-decoration: none;
+  transform: translateY(-200%);
+  transition: transform 160ms var(--ease-out);
+}
+.skip:focus { transform: translateY(0); }
+#view-host:focus { outline: none; }
+
+/* Figures line up in columns when they are meant to be compared - counts,
+   usage, prices, versions. Proportional digits make a changing number jitter. */
+.mono, .usage__value, .picker__state, .vslider__caption,
+[data-count], time, .tier__price {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Headings decide their own line breaks rather than leaving one word stranded
+   on the last line. balance for short display text, pretty for running copy -
+   the browser does the work either way, and an orphan is the single most common
+   thing that makes otherwise careful typography look accidental. */
+h1, h2, h3, .title, .chooser__title, .chooser__name, .studio__step-title {
+  text-wrap: balance;
+}
+p, .muted, .chooser__tagline, .vslider__caption { text-wrap: pretty; }

@@ -49,6 +49,16 @@
 </head>
 
 <body>
+<!-- The first thing Tab reaches. A keyboard user landing here would otherwise
+     walk the whole sidebar before reaching the thing they came for, on every
+     single page. Hidden until focused, which is the only time it is useful. -->
+<a class="skip" href="#view-host">Przejdź do treści</a>
+
+<!-- Grain, fixed and unclickable. Flat digital colour has no surface to it; a
+     little noise gives the black something to be made of, and it costs one
+     element and no requests - the texture is drawn by the browser rather than
+     downloaded. -->
+<div class="grain" aria-hidden="true"></div>
 
 <!-- ============================================================ boot gate == -->
 <!-- Shown until Firebase answers whether anyone is signed in. Without it the
@@ -179,7 +189,7 @@
       <h1 id="view-title" class="topbar__title subtitle">Chat</h1>
     </header>
 
-    <main id="view-host" class="view-host">
+    <main id="view-host" class="view-host" tabindex="-1">
       <section class="view" id="view-chat" data-view="chat" hidden></section>
       <section class="view" id="view-image" data-view="image" hidden></section>
       <section class="view" id="view-video" data-view="video" hidden></section>

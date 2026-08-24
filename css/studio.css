@@ -608,7 +608,7 @@
   border: 1px solid color-mix(in srgb, white 12%, transparent);
   background: color-mix(in srgb, var(--surface) 62%, transparent);
   backdrop-filter: blur(22px) saturate(170%);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22), 0 18px 44px rgba(0, 0, 0, 0.34);
+  box-shadow: var(--shade-1-up), var(--shade-2-up);
 }
 
 .pillnav__track {
@@ -617,6 +617,14 @@
   grid-template-columns: repeat(var(--pn-count, 3), minmax(0, 1fr));
   touch-action: pan-y;                 /* the pill owns horizontal, the page vertical */
   cursor: grab;
+  /* The thumb is kept inside its own pill. A loose spring overshoots by design
+     and the velocity stretch grows from the centre, so at either end the far
+     half escaped - measured at 73px past the right edge, sitting on top of the
+     label next to it. Clipped, the same overshoot reads as the thumb pressing
+     against the end of the track, which is what it physically is. The radius
+     has to match the pill or the corners cut square. */
+  overflow: hidden;
+  border-radius: inherit;
 }
 .pillnav__track[data-dragging] { cursor: grabbing; }
 
@@ -915,7 +923,7 @@
   border: 1px solid var(--line);
   cursor: pointer;
   flex: none;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 8px 20px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shade-1), var(--shade-2);
   transition: transform 160ms cubic-bezier(0.32, 0.72, 0, 1),
               box-shadow 160ms var(--ease-out);
 }
@@ -923,7 +931,7 @@
    show - lifting a tile that is still painting promises a picture. */
 .weird__tile[data-status='done']:hover {
   transform: translateY(-3px) scale(1.03);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 16px 32px rgba(0, 0, 0, 0.24);
+  box-shadow: var(--shade-1-up), var(--shade-2-up);
 }
 .weird__tile[data-status='done']:active { transform: translateY(-1px) scale(0.99); }
 .weird__tile[data-status='pending'] { cursor: default; }
@@ -956,20 +964,25 @@
   to { background-position: 300% 50%; }
 }
 
-.weird__tile::after {
+/* No spinner. The tile is already the shape of the thing being made and the
+   gradient sliding under it is already saying "working" - a spinning circle on
+   top of a skeleton is two loading indicators for one wait, and the generic one
+   is the one that tells you least. What is left reads as the picture developing
+   rather than as a widget. */
+
+/* A picture that never arrived says so on the tile itself. A title attribute is
+   not a state: it needs a hover, it never appears on a phone, and a tile that
+   simply stops moving looks like one still working. */
+.weird__tile[data-status='error']::after,
+.weird__tile[data-status='cancelled']::after {
   content: '';
   position: absolute;
-  left: 50%; top: 50%;
-  width: 20px; height: 20px;
-  margin: -10px 0 0 -10px;
-  border-radius: 50%;
-  border: 2px solid color-mix(in srgb, var(--text) 25%, transparent);
-  border-top-color: var(--text);
-  animation: weird-spin 700ms linear infinite;
+  inset: 0;
+  background:
+    linear-gradient(45deg, transparent calc(50% - 1px),
+      color-mix(in srgb, var(--text) 34%, transparent) 50%,
+      transparent calc(50% + 1px));
 }
-.weird__tile:not([data-status='pending'])::after { content: none; }
-
-@keyframes weird-spin { to { transform: rotate(360deg); } }
 
 .weird__tile-img {
   position: relative;
@@ -1041,7 +1054,7 @@
   max-height: 66vh;
   border-radius: 22px;
   image-rendering: auto;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 32px 80px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 4px 12px rgba(10, 8, 4, 0.42), 0 32px 80px rgba(10, 8, 4, 0.5);
 }
 .weird__viewer-figure figcaption {
   font-size: var(--step--1);
@@ -1087,7 +1100,7 @@
   border: 1px solid color-mix(in srgb, white 14%, transparent);
   background: color-mix(in srgb, var(--surface) 58%, transparent);
   backdrop-filter: blur(20px) saturate(160%);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 12px 40px rgba(10, 8, 4, 0.46);
 }
 .weird__viewer-actions .btn { border: 0; border-radius: 999px; }
 
@@ -1118,7 +1131,7 @@
 .preset {
   position: relative;
   overflow: hidden;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14), 0 10px 26px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shade-1), var(--shade-2);
   transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1),
               border-color 200ms var(--ease-out),
               box-shadow 200ms var(--ease-out);
@@ -1137,20 +1150,20 @@
 .preset:hover {
   border-color: var(--accent-line);
   transform: translateY(-4px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18), 0 22px 44px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shade-1-up), var(--shade-2-up);
 }
 .preset:active { transform: translateY(-1px) scale(0.99); }
 
 .doodle__stage {
   position: relative;
   box-shadow: inset 0 1px 0 color-mix(in srgb, white 6%, transparent),
-              0 12px 32px rgba(0, 0, 0, 0.14);
+              var(--shade-2);
 }
 
 /* Chips in both panels: the same pill, the same press. */
 .doodle__chip, .vocab__chip {
   border-radius: 999px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shade-1);
 }
 
 /* The version picker is chrome floating over content, so it is a material and
@@ -1175,3 +1188,47 @@
 /* The picked decoder version. Same treatment as the other pickers on the
    page, so "which one is active" reads the same everywhere. */
 .doodle__chip.is-on { border-color: var(--accent); background: var(--accent-soft); }
+
+/* ---------------------------------------------------- g-weird openers -- */
+/*
+ * What to write, shown rather than explained.
+ *
+ * The blank canvas is the best-documented failure in generative interfaces:
+ * a caret and nothing else asks a question most people cannot answer, and the
+ * ones who guess wrong decide the model is broken rather than that they guessed.
+ * These are not buttons in the visual sense - no border, no fill, no hover
+ * chrome - because the screen's whole premise is that there is no form here.
+ * They read as lines someone has already written, one shade below your own.
+ */
+.weird__openers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-4);
+  margin: var(--sp-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.weird__opener {
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--text-faint);
+  font-family: var(--font-display);
+  font-size: clamp(0.95rem, 1.4vw, 1.15rem);
+  letter-spacing: var(--track-title);
+  cursor: pointer;
+  /* The underline grows from the left on hover rather than switching on: the
+     line is the thing being offered, so the emphasis travels along it. */
+  background-image: linear-gradient(var(--accent), var(--accent));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0 1px;
+  transition: color 180ms var(--ease-out), background-size 260ms var(--ease-out);
+}
+.weird__opener:hover,
+.weird__opener:focus-visible { color: var(--text); background-size: 100% 1px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .weird__opener { transition: none; }
+}

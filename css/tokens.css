@@ -112,6 +112,17 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
+
+  /* Shadows carry the ground's hue rather than neutral black. A warm-black page
+     lit by a neutral-black shadow reads as two different rooms; tinting the
+     shade with the same warmth makes the light look like it belongs to the
+     surface it is falling on. Two terms, always: a tight contact shadow that
+     says the thing is touching, and a wide ambient one that says how far above
+     it is floating. -up is the same pair at hover height. */
+  --shade-1: 0 1px 2px rgba(10, 8, 4, 0.34);
+  --shade-2: 0 10px 26px rgba(10, 8, 4, 0.26);
+  --shade-1-up: 0 2px 6px rgba(10, 8, 4, 0.4);
+  --shade-2-up: 0 22px 46px rgba(10, 8, 4, 0.42);
 }
 
 /* ------------------------------------------------------------------- light -- */
@@ -140,6 +151,10 @@
   --shadow-sm: 0 1px 2px rgba(26, 26, 23, 0.08);
   --shadow-md: 0 8px 24px rgba(26, 26, 23, 0.1);
   --shadow-lg: 0 24px 60px rgba(26, 26, 23, 0.14);
+  --shade-1: 0 1px 2px rgba(64, 56, 40, 0.09);
+  --shade-2: 0 10px 26px rgba(64, 56, 40, 0.08);
+  --shade-1-up: 0 2px 6px rgba(64, 56, 40, 0.13);
+  --shade-2-up: 0 22px 46px rgba(64, 56, 40, 0.12);
 }
 
 /* Translucent chrome collapses into solid surfaces when the reader has asked

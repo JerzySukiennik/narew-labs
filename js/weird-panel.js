@@ -32,6 +32,30 @@ import { $, $$, esc, reduced, enter } from './ui.js';
    and takes considerably longer than the painting does. */
 const IDLE_TIMEOUT = 180000;
 
+/**
+ * Six prompts the model is genuinely good at.
+ *
+ * The empty screen is the point of this design, but an empty screen with a
+ * blinking caret is also the blank canvas - the most reliably documented failure
+ * in generative interfaces: people who do not already know what the thing can do
+ * type nothing, or type something it cannot do, and conclude it is broken. The
+ * fix is not a form. It is showing what a good prompt looks like, in the same
+ * voice you would write one in, close enough to the caret to read as an offer
+ * rather than an ad.
+ *
+ * These are real: single subjects and single styles, which is what a 62M model
+ * trained on captions can actually hold. Two objects at once is where it falls
+ * apart, so nothing here asks for two.
+ */
+const OPENERS = [
+  'a horse in a field',
+  'moon over black water',
+  'a lighthouse at night',
+  'a red bicycle',
+  'a city skyline, black and white',
+  'a cat sleeping',
+];
+
 let ui = null;
 let queue = [];
 let nextId = 1;
@@ -44,6 +68,13 @@ const TEMPLATE = `
       </div>
       <p class="weird__hint muted" id="weird-hint"></p>
 
+      <!-- Only while nothing has been typed. Three of them, not six: a list you
+           scan is a menu, a list you glance at is a hint. -->
+      <ul class="weird__openers" id="weird-openers" aria-label="Przykłady">
+        ${OPENERS.slice(0, 3).map((o) => `
+          <li><button type="button" class="weird__opener" data-opener="${esc(o)}">${esc(o)}</button></li>`).join('')}
+      </ul>
+
       <!-- Invisible, but the real one: it owns focus, the caret position, the
            mobile keyboard and paste. What you see are spans mirroring it. -->
       <label class="sr-only" for="weird-ghost">Co namalować</label>
@@ -52,6 +83,12 @@ const TEMPLATE = `
     </div>
 
     <div class="weird__queue" id="weird-queue" role="list" aria-label="Kolejka obrazów"></div>
+
+    <!-- Nothing on this screen is announced by simply appearing: a picture that
+         arrives is a silent DOM change. Someone not watching the tiles - or not
+         able to - gets told here instead. Polite, because it is news rather than
+         an interruption. -->
+    <p class="sr-only" role="status" aria-live="polite" id="weird-status"></p>
   </section>`;
 
 /* ----------------------------------------------------------------- type -- */
@@ -103,7 +140,11 @@ function syncText() {
 }
 
 function updateHint() {
-  $('#weird-hint', ui.host).hidden = ui.shown.length > 0;
+  const empty = ui.shown.length === 0;
+  $('#weird-hint', ui.host).hidden = !empty;
+  /* The openers belong to the blank screen and to nothing else. The moment
+     there is a prompt they are noise, and they go without being dismissed. */
+  $('#weird-openers', ui.host).hidden = !empty;
 }
 
 function clearText() {
@@ -111,6 +152,33 @@ function clearText() {
   $('#weird-text', ui.host).textContent = '';
   ui.shown = '';
   updateHint();
+}
+
+/**
+ * Write a line as though it had been typed.
+ *
+ * Straight assignment would work and would look like a paste. The letters go in
+ * on the same cadence the reveal animation assumes, so an example arrives the
+ * way your own words do - and the caret is left at the end, ready to be edited.
+ */
+function typeIn(text) {
+  const ghost = $('#weird-ghost', ui.host);
+  ghost.focus({ preventScroll: true });
+  clearInterval(ui.typer);
+  /* A hidden tab clamps timers to about one second, so the line would crawl in
+     two characters at a time and still be arriving minutes later. Nobody is
+     watching it type, so it is simply there. */
+  if (reduced() || document.hidden) {
+    ghost.value = text;
+    syncText();
+    return;
+  }
+  let i = 0;
+  ui.typer = setInterval(() => {
+    ghost.value = text.slice(0, ++i);
+    syncText();
+    if (i >= text.length) clearInterval(ui.typer);
+  }, 26);
 }
 
 /* ---------------------------------------------------------------- commit -- */
@@ -145,6 +213,7 @@ function commit() {
   renderQueue();
   start(item);
   restHint();
+  announce(`Maluję: ${prompt}`);
 
   const line = $('#weird-line', ui.host);
   const tile = $(`[data-item="${item.id}"]`, ui.host);
@@ -296,6 +365,12 @@ function restHint() {
   hint.textContent = busy
     ? (busy === 1 ? 'maluję… (~7 s)' : `maluję… ${busy} w kolejce`)
     : `pisz po angielsku · G-Weird ${versionLabel()}, test`;
+}
+
+/** Say what just happened, for anyone not looking at the tiles. */
+function announce(text) {
+  const node = ui && $('#weird-status', ui.host);
+  if (node) node.textContent = text;
 }
 
 /* ----------------------------------------------------------------- queue -- */
@@ -493,7 +568,34 @@ function openViewer(item, origin) {
       $('#weird-ghost', ui.host)?.focus({ preventScroll: true });
     }, reduced() ? 0 : 380);
   };
-  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  /* Full screen means full screen: Tab must not wander back into the page
+     underneath, which is still there and still focusable. Arrow keys walk the
+     queue, because once a picture is open the obvious next thing to want is the
+     one beside it - and going back out to click a tile to see it is a step
+     nobody would design on purpose. */
+  const onKey = (e) => {
+    if (e.key === 'Escape') { close(); return; }
+
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      const done = queue.filter((q) => q.image);
+      const at = done.indexOf(item);
+      const next = done[at + (e.key === 'ArrowRight' ? 1 : -1)];
+      if (!next) return;
+      e.preventDefault();
+      close();
+      openViewer(next, $(`[data-item="${next.id}"]`, ui.host));
+      return;
+    }
+
+    if (e.key !== 'Tab') return;
+    const stops = $$('button, a[href]', node).filter((el) => !el.hidden);
+    if (!stops.length) return;
+    const first = stops[0];
+    const last = stops[stops.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    else if (!node.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+  };
   document.addEventListener('keydown', onKey);
   $('#wv-close', node).addEventListener('click', close);
   node.addEventListener('click', (e) => { if (e.target === node) close(); });
@@ -547,7 +649,7 @@ function focusWhenShown(host, ghost) {
 
 export function mountPanel(host, ctx) {
   host.innerHTML = TEMPLATE;
-  ui = { host, ctx, shown: '', hintTimer: null, handlers: [] };
+  ui = { host, ctx, shown: '', hintTimer: null, typer: null, handlers: [] };
   restHint();
 
   const on = (target, type, fn) => {
@@ -563,9 +665,22 @@ export function mountPanel(host, ctx) {
     commit();
   });
 
+  /* An opener is not a preset that runs something - it writes the line for you
+     and leaves the caret at the end of it, so the next thing you do is edit your
+     own sentence rather than accept somebody else's. It types itself in, because
+     a line that simply appears teaches nothing about where it came from. */
+  on($('#weird-openers', host), 'click', (e) => {
+    const btn = e.target.closest('[data-opener]');
+    if (!btn) return;
+    typeIn(btn.dataset.opener);
+  });
+
   /* Anywhere on the empty half is the writing surface. Clicking a queue tile is
-     not: that opens the picture. */
-  on($('.weird__stage', host), 'click', () => ghost.focus({ preventScroll: true }));
+     not: that opens the picture, and an opener writes into the line. */
+  on($('.weird__stage', host), 'click', (e) => {
+    if (e.target.closest('[data-opener]')) return;
+    ghost.focus({ preventScroll: true });
+  });
 
   /* And you should never have to find the field at all. On a screen whose whole
      premise is "write something", a keystroke IS the intent to write, so any
@@ -603,6 +718,7 @@ export function unmountPanel() {
      throw away seven seconds of Mac that is already half spent, and the queue
      these belong to is still here when you come back. */
   clearTimeout(ui?.hintTimer);
+  clearInterval(ui?.typer);
   ui?.observer?.disconnect();
   ui?.handlers.forEach(([t, ty, fn]) => t.removeEventListener(ty, fn));
   ui = null;

@@ -1,10 +1,19 @@
 /**
- * Upgrade — three tiers named after the fish you can actually pull out of the
- * Narew, a checkout that is openly a prop, a promo field and a referral link.
+ * Plans — three tiers named after fish you can actually pull out of the Narew,
+ * a checkout that is openly a prop, a promo field and a referral link.
  *
- * The checkout deliberately has no card fields at all. A realistic-looking form
- * that quietly does nothing is the one thing here that would be dishonest, so
- * the summary is real, the button is real, and the payment is named as absent.
+ * The checkout DOES have card fields. It used to have none, and this header
+ * still described that version long after the fields were added on request -
+ * which is worse than either choice, because the next person to change this
+ * file would have trusted it.
+ *
+ * What is actually here: name, number, expiry and CVV, validated for shape
+ * only, plus an animated card that mirrors what is typed. Nothing is sent
+ * anywhere - there is no payment processor in this app at all - and the fields
+ * exist so that choosing a paid plan feels like a decision rather than a
+ * toggle. Because the form is convincing, saying so is not fine print: the
+ * notice sits above the first field, where it is read before anything is
+ * typed rather than after.
  */
 
 import * as store from '../store.js';
@@ -43,8 +52,14 @@ export async function mount(root, ctx) {
  *  already on and hands you back to it when you close it. */
 export function openAsOverlay(ctx) {
   const node = el('<div class="upgrade-sheet"></div>');
+  /* Opened first, because render() refuses to draw into a detached node and
+     drawer() is what attaches it. Then filled, then focused - drawer() looks
+     for something to focus at the moment it opens, which for this sheet is
+     always one step too early, so the keyboard is placed here instead. */
   drawer(node, { label: 'Plany' });
-  mount(node, ctx);
+  context = ctx;
+  render(node);
+  node.querySelector('button, [href], input')?.focus({ preventScroll: true });
 }
 
 /**
@@ -71,7 +86,16 @@ function bind(target, type, fn) {
   handlers.push([target, type, fn]);
 }
 
+/**
+ * Redraw the plans list.
+ *
+ * Guards on the node still being in the document. The checkout is opened from
+ * this list and can outlive it - a sheet dismissed while a purchase was in
+ * flight leaves `root` detached, and rendering into a detached node throws
+ * nothing and shows nothing, which is the worst of both.
+ */
 function render(root) {
+  if (!root?.isConnected) return;
   const current = store.activeTier();
   const until = store.tierExpiresAt();
 
@@ -224,6 +248,9 @@ function checkout(tierId, root) {
       <div class="checkout__row checkout__row--total"><span>Do zapłaty</span><span class="mono">${tier.price ? `${tier.price},00 zł` : '0,00 zł'}</span></div>
 
       ${tier.price ? `
+      <p class="checkout__fine checkout__fine--lead">
+        Atrapa. Nie ma tu żadnej płatności - pola karty nigdzie nie są wysyłane.
+      </p>
       <div class="checkout__preview" id="co-card-preview"></div>
       <div class="checkout__card">
         <label class="label" for="co-card-name">Imię i nazwisko</label>
@@ -248,7 +275,6 @@ function checkout(tierId, root) {
         <button class="btn btn--ghost" id="co-cancel">Anuluj</button>
         <button class="btn btn--primary" id="co-pay">${tier.price ? 'Zapłać' : 'Przełącz'}</button>
       </div>
-      <p class="checkout__fine">Atrapa - pola karty nigdzie nie są wysyłane.</p>
 
       <details class="promo">
         <summary class="label">Mam kod promocyjny</summary>

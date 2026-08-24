@@ -244,7 +244,7 @@
 .nav__icon { flex: none; width: 20px; height: 20px; }
 .nav__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
-.nav__tag, .nav__tier {
+.nav__tier {
   flex: none;
   font-family: var(--font-body);
   font-size: 0.68rem;
@@ -397,7 +397,6 @@
 .app[data-sidebar='collapsed'] .brand__word,
 .app[data-sidebar='collapsed'] .new-chat__label,
 .app[data-sidebar='collapsed'] .nav__label,
-.app[data-sidebar='collapsed'] .nav__tag,
 .app[data-sidebar='collapsed'] .nav__tier,
 .app[data-sidebar='collapsed'] .nav__go,
 .app[data-sidebar='collapsed'] .bridge__text,
@@ -417,7 +416,6 @@
 .app[data-sidebar='collapsed'] .nav__item,
 .app[data-sidebar='collapsed'] .bridge,
 .app[data-sidebar='collapsed'] .user-chip { justify-content: center; padding: 0; }
-.app[data-sidebar='collapsed'] .bridge__river { opacity: 0.35; }
 
 /* The toggle moves into the topbar when there is no room for it in the head. */
 
@@ -456,7 +454,9 @@
 
 .overlay-host { position: fixed; inset: 0; z-index: var(--z-sheet); }
 /* The plans sheet is three columns wide; every other overlay stays a dialog. */
-.overlay__panel:has(.upgrade-sheet) { --overlay-w: 62rem; }
+/* (The plans sheet used to have a width override here. It mounts in the drawer,
+   which is already full width, and the rule targeted .overlay__panel - a
+   combination that has never existed. Removed rather than re-pointed.) */
 .overlay-host[hidden] { display: none; }
 
 .overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: var(--sp-4); }
@@ -530,12 +530,10 @@
   .app[data-sidebar='collapsed'] .brand__word,
   .app[data-sidebar='collapsed'] .new-chat__label,
   .app[data-sidebar='collapsed'] .nav__label,
-  .app[data-sidebar='collapsed'] .nav__tag,
   .app[data-sidebar='collapsed'] .nav__tier,
   .app[data-sidebar='collapsed'] .bridge__text,
   .app[data-sidebar='collapsed'] .user-chip__body { display: revert; }
   .app[data-sidebar='collapsed'] .sidebar__head { justify-content: space-between; padding-left: var(--sp-2); }
-  .app[data-sidebar='collapsed'] .sidebar__toggle { display: none; }
   .app[data-sidebar='collapsed'] .new-chat,
   .app[data-sidebar='collapsed'] .nav__item,
   .app[data-sidebar='collapsed'] .bridge,
@@ -780,3 +778,8 @@
 .app[data-sidebar='collapsed'] .sidebar:focus-within .rail-search__label,
 .app[data-sidebar='collapsed'] .sidebar:hover .rail-search__kbd,
 .app[data-sidebar='collapsed'] .sidebar:focus-within .rail-search__kbd { display: block; }
+
+/* The sheet sits one layer under the dialog, so a checkout opened from the
+   plans list stacks on top of it instead of replacing it - and cancelling
+   returns you to the list you were reading rather than to nothing. */
+.overlay-host--drawer { z-index: calc(var(--z-sheet) - 1); }

@@ -186,7 +186,7 @@ async function renderHistory(root) {
       await store.deleteConversation(btn.dataset.del);
       await renderHistory(root);
     } catch (e) {
-      toast(`Nie usunąłem konta. ${problem(e)}`, 'error', 6000);
+      toast(`Nie usunąłem tej rozmowy. ${problem(e)}`, 'error', 6000);
     }
   }));
 }

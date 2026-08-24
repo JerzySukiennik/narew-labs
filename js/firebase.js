@@ -24,6 +24,7 @@ import {
   writeBatch, increment, Timestamp,
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { getDatabase } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+import { problem } from './ui.js';
 
 const CONFIG = {
   apiKey: 'AIzaSyCiNb3wGWfE1xt19CmeEF3M4hh2KQ_QcqM',
@@ -126,6 +127,9 @@ export function explainAuthError(e) {
   if (code.includes('admin-restricted-operation')) {
     return 'Wejście jako gość nie jest włączone w konsoli Firebase.';
   }
-  if (code.includes('network-request-failed')) return 'Brak połączenia z Firebase.';
-  return e?.message || 'Logowanie się nie udało.';
+  if (code.includes('network-request-failed')) return 'Brak połączenia. Sprawdź internet i spróbuj jeszcze raz.';
+  /* Never the library's own string. An unmapped code used to put raw English on
+     the sign-in card - the exact failure the shared helper exists to prevent,
+     and the gate was the one screen not using it. */
+  return problem(e, 'Nie udało mi się zalogować. Spróbuj jeszcze raz.');
 }

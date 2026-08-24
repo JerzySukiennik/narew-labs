@@ -44,6 +44,10 @@ function matches(text, q) {
 export function openPalette(commands) {
   if (open) return;
 
+  /* Read before the palette takes focus, so dismissing it puts the keyboard
+     back on whatever opened it rather than at the top of the document. */
+  const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
   const node = el(`
     <div class="palette" role="dialog" aria-modal="true" aria-label="Polecenia">
       <div class="palette__scrim" data-close></div>
@@ -54,8 +58,14 @@ export function openPalette(commands) {
             <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
           </svg>
           <label class="sr-only" for="pal-input">Szukaj polecenia</label>
+          <!-- Focus never leaves this field, so it is the field that has to
+               report which row is current. Without the combobox contract a
+               screen reader hears nothing as the highlight moves and Enter
+               runs a command it was never told about. -->
           <input id="pal-input" class="palette__input" autocomplete="off"
-                 spellcheck="false" placeholder="Dokąd?">
+                 spellcheck="false" placeholder="Dokąd?"
+                 role="combobox" aria-expanded="true" aria-controls="pal-list"
+                 aria-autocomplete="list">
           <kbd class="palette__kbd">esc</kbd>
         </div>
         <ul class="palette__list" id="pal-list" role="listbox" aria-label="Wyniki"></ul>
@@ -88,31 +98,38 @@ export function openPalette(commands) {
       return `${head}
         <li role="presentation">
           <button type="button" class="palette__row" role="option" data-i="${i}"
-                  aria-selected="${i === cursor}">
+                  id="pal-opt-${i}" aria-selected="${i === cursor}">
             <span class="palette__icon" aria-hidden="true">${c.icon || ''}</span>
             <span class="palette__label">${esc(c.label)}</span>
             ${c.hint ? `<span class="palette__hint">${esc(c.hint)}</span>` : ''}
           </button>
         </li>`;
     }).join('');
-    scrollToCursor();
+    mark();
   };
 
-  const scrollToCursor = () => {
+  /* The selection lives in three places - the array index, the row's
+     aria-selected, and the input's aria-activedescendant - and they are only
+     ever written together, here. */
+  const mark = () => {
+    $$('.palette__row', list).forEach((r, i) => r.setAttribute('aria-selected', String(i === cursor)));
     const row = $(`[data-i="${cursor}"]`, list);
+    if (row) input.setAttribute('aria-activedescendant', row.id);
+    else input.removeAttribute('aria-activedescendant');
     row?.scrollIntoView({ block: 'nearest' });
   };
 
   const move = (step) => {
     if (!shown.length) return;
     cursor = (cursor + step + shown.length) % shown.length;
-    $$('.palette__row', list).forEach((r, i) => r.setAttribute('aria-selected', String(i === cursor)));
-    scrollToCursor();
+    mark();
   };
 
+  let ran = false;
   const run = (i) => {
     const cmd = shown[i];
     if (!cmd) return;
+    ran = true;
     close();
     /* After the palette is gone, so a command that opens something else is not
        fighting this for focus. */
@@ -125,6 +142,9 @@ export function openPalette(commands) {
     document.removeEventListener('keydown', onKey, true);
     node.dataset.closing = 'true';
     setTimeout(() => node.remove(), reduced() ? 0 : 160);
+    /* Only when nothing ran: a command that navigates somewhere should be
+       allowed to decide where the keyboard lands. */
+    if (!ran) opener?.focus?.({ preventScroll: true });
   }
 
   const onKey = (e) => {
@@ -150,7 +170,7 @@ export function openPalette(commands) {
     const row = e.target.closest('[data-i]');
     if (!row || Number(row.dataset.i) === cursor) return;
     cursor = Number(row.dataset.i);
-    $$('.palette__row', list).forEach((r, i) => r.setAttribute('aria-selected', String(i === cursor)));
+    mark();
   });
   $('[data-close]', node).addEventListener('click', close);
 

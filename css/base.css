@@ -311,14 +311,14 @@ h1, h2, h3, .title, .chooser__title, .weird__line {
 h3, .studio__step-title { letter-spacing: var(--track-title); line-height: 1.15; }
 .label, .picker__state { letter-spacing: var(--track-label); }
 
-button, .btn, [role='option'], .chooser__card, .preset, .weird__tile, .doodle__chip {
+button, .btn, [role='option'], .preset, .weird__tile, .doodle__chip {
   -webkit-tap-highlight-color: transparent;
 }
-button:active, .btn:active, .chooser__card:active,
+button:active, .btn:active,
 .preset:active, .doodle__chip:active, .vocab__chip:active {
   transform: scale(0.975);
 }
-button, .btn, .chooser__card, .preset, .doodle__chip, .vocab__chip {
+button, .btn, .preset, .doodle__chip, .vocab__chip {
   transition: transform var(--t-tap) cubic-bezier(0.32, 0.72, 0, 1),
               background var(--t-fast) var(--ease-out),
               border-color var(--t-fast) var(--ease-out),
@@ -340,14 +340,14 @@ button, .btn, .chooser__card, .preset, .doodle__chip, .vocab__chip {
   }
 }
 @media (prefers-contrast: more) {
-  .chooser__card, .weird__tile, .picker__menu, .overlay__panel {
+  .weird__tile, .picker__menu, .overlay__panel {
     border-color: var(--text-muted);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  button:active, .btn:active, .chooser__card:active,
+  button:active, .btn:active,
   .preset:active, .doodle__chip:active, .vocab__chip:active { transform: none; }
-  button, .btn, .chooser__card, .preset, .doodle__chip, .vocab__chip { transition: none; }
+  button, .btn, .preset, .doodle__chip, .vocab__chip { transition: none; }
 }
 
 /* ------------------------------------------------------------- surface -- */
@@ -400,10 +400,10 @@ button, .btn, .chooser__card, .preset, .doodle__chip, .vocab__chip {
    on the last line. balance for short display text, pretty for running copy -
    the browser does the work either way, and an orphan is the single most common
    thing that makes otherwise careful typography look accidental. */
-h1, h2, h3, .title, .chooser__title, .chooser__name, .studio__step-title {
+h1, h2, h3, .title, .chooser__title, .studio__step-title {
   text-wrap: balance;
 }
-p, .muted, .chooser__tagline, .vslider__caption { text-wrap: pretty; }
+p, .muted, .vslider__caption { text-wrap: pretty; }
 
 /* ------------------------------------------------------- reduced motion -- */
 /*
@@ -427,3 +427,18 @@ p, .muted, .chooser__tagline, .vslider__caption { text-wrap: pretty; }
     scroll-behavior: auto !important;
   }
 }
+
+/* A button that has to read as part of a sentence. It opens the plans over the
+   current screen rather than going anywhere, so it cannot be an anchor - there
+   is no address to give it - but inside running text it has to look like one. */
+.linkish {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.linkish:hover { color: var(--text); }

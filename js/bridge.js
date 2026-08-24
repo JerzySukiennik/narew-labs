@@ -328,7 +328,15 @@ export class MacBridge {
       if (!v) return;
       arm();
       if (typeof v.text === 'string') latest = v.text;
-      onUpdate(v);
+      /* A view's bug must not be able to strand a job. onUpdate belongs to
+         whoever asked for the answer; if it throws, the lines below still have
+         to run, or the listener stays attached, the job node is never deleted
+         and the Mac keeps a slot open for a picture nobody will collect. */
+      try {
+        onUpdate(v);
+      } catch (e) {
+        console.error('[narew] widok rzucił błąd w trakcie odpowiedzi', e);
+      }
       if (v.done) settle();
     }, (e) => end(`Straciłem połączenie w trakcie odpowiedzi. ${problem(e)}`));
 

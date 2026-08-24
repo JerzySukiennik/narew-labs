@@ -286,7 +286,10 @@ function wire() {
     syncComposer();
   });
 
-  on(window, 'narew:open-conversation', (e) => openConversation(e.detail.id));
+  /* (There used to be a listener for a 'narew:open-conversation' event here. It
+     could never fire: settings.js dispatches it and then navigates, and only one
+     view is mounted at a time, so chat was never listening when it went out. The
+     sessionStorage handoff read at mount is what actually carries the id.) */
 
   const newChat = $('#new-chat');
   if (newChat) on(newChat, 'click', reset);
@@ -592,7 +595,7 @@ async function send() {
   const allowance = store.sendAllowance();
   if (!allowance.ok) {
     toast(allowance.reason, 'error', 6000);
-    ui.ctx.go('upgrade');
+    ui.ctx.openUpgrade();
     return;
   }
 
@@ -691,26 +694,47 @@ async function finish(session, note) {
   node.classList.remove('is-waiting');
   syncComposer();
 
-  if (answer) await reveal(body, answer);
-  else body.innerHTML = `<p class="muted">${esc(note || 'Bez odpowiedzi.')}</p>`;
-
+  /* Recorded before the reveal, never after it.
+     The composer is handed back above, and the reveal that follows takes up to
+     about two seconds - a window in which the next message can be sent, or the
+     conversation reset. Pushing the answer after that window put the array in
+     the order [user, user, assistant], which every reader here assumes cannot
+     happen: the history pairing walks it two at a time, and forStorage drops
+     whole exchanges off the front. Worse with "Nowa rozmowa" - the suspended
+     tail woke up and pushed the old model's reply into the empty new
+     conversation, then saved it under that reply as the title. */
   ui.messages.push({ role: 'assistant', text: answer });
 
-  const tokens = store.estimateTokens(prompt) + store.estimateTokens(answer);
-  store.recordUsage(tokens, ui.model);
+  /* Everything the save needs, read now. After the await these are whatever
+     the user has since navigated to. */
+  const convId = ui.convId;
+  const model = ui.model;
+  const messages = ui.messages.slice();
 
-  try {
-    ui.convId = await store.saveConversation({
-      id: ui.convId,
-      title: ui.messages[0]?.text || 'Bez tytułu',
-      model: ui.model,
-      messages: forStorage(ui.messages),
-    });
-  } catch (e) {
+  store.recordUsage(store.estimateTokens(prompt) + store.estimateTokens(answer), model);
+
+  /* Started now and awaited at the end: the conversation becomes durable while
+     the words are still arriving rather than a beat after they stop. */
+  const saved = store.saveConversation({
+    id: convId,
+    title: messages[0]?.text || 'Bez tytułu',
+    model,
+    messages: forStorage(messages),
+  }).then((id) => {
+    /* Only if this is still the conversation on screen. A new one started
+       during the reveal has its own id, and handing it this one would file the
+       next message into the conversation that just ended. */
+    if (ui && ui.convId === convId) ui.convId = id;
+  }).catch((e) => {
     /* A failed save used to be a console line nobody reads, which meant a
        conversation could quietly not exist. Say it out loud instead. */
     toast(`Nie zapisałem tej rozmowy. ${problem(e)}`, 'error', 6000);
-  }
+  });
+
+  if (answer) await reveal(body, answer);
+  else body.innerHTML = `<p class="muted">${esc(note || 'Bez odpowiedzi.')}</p>`;
+
+  await saved;
 }
 
 /**

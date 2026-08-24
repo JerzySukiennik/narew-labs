@@ -40,7 +40,7 @@ export function mount(root) {
           </button>
         </div>
 
-        <p class="gate__error" id="login-error" hidden></p>
+        <p class="gate__error" id="login-error" role="alert" hidden></p>
 
         <p class="gate__fine">Konto gościa żyje tylko w tej przeglądarce.</p>
 

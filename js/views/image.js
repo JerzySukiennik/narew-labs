@@ -351,6 +351,12 @@ const on = (t, ty, fn) => { t.addEventListener(ty, fn); ui.handlers.push([t, ty,
 function wire() {
   on($('#studio-back', ui.root), 'click', showChooser);
 
+  /* Delegated, because the banner is rewritten on every state change and a
+     handler bound to the button inside it would be thrown away with it. */
+  on($('#studio-state', ui.root), 'click', (e) => {
+    if (e.target.closest('#see-plans')) ui.ctx.openUpgrade();
+  });
+
   /* The palette can ask for a family directly, so "G-Weird" typed into Cmd-K
      lands on the screen rather than on the chooser in front of it. Delivered as
      an event because the palette has no business knowing this view exists. */
@@ -428,8 +434,11 @@ function reasonBlocked() {
   const picked = currentImageModel();
   if (!picked.wire) return unservableReason(picked);
   if (!ui.ctx.bridge.online) return 'Mac w domu śpi - Image Studio potrzebuje go do pracy.';
-  if (!ui.ctx.bridge.isAvailable('g-images')) {
-    return 'G-Images nie jest jeszcze wytrenowany - na razie istnieje jako specyfikacja i pipeline treningowy, więc Mac go nie publikuje.';
+  /* The version actually chosen, not a hardcoded wire name. Every family has
+     its own now, so standing in G-Weird with a published g-weird-1 used to
+     produce a paragraph about G-Images. */
+  if (!ui.ctx.bridge.isAvailable(picked.wire)) {
+    return `${picked.name} nie jest teraz publikowany przez Maca. Wybierz inną wersję albo spróbuj później.`;
   }
   return '';
 }
@@ -444,7 +453,7 @@ function syncState() {
   if (blocked === 'lock') {
     state.hidden = false;
     state.dataset.kind = 'lock';
-    state.innerHTML = 'Image Studio jest w planie <strong>Lin</strong>. Widok zostawiam otwarty, żeby było widać, co się dostaje. <a href="#/upgrade">Zobacz plany</a>.';
+    state.innerHTML = 'Image Studio jest w planie <strong>Lin</strong>. Widok zostawiam otwarty, żeby było widać, co się dostaje. <button type="button" class="linkish" id="see-plans">Zobacz plany</button>.';
   } else if (blocked) {
     state.hidden = false;
     state.dataset.kind = 'off';

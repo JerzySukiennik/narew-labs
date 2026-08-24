@@ -47,6 +47,12 @@ let bridge = null;
 export const ctx = {
   get bridge() { return bridge; },
   go,
+  /* The plans are a decision, not a place - they open over whatever screen you
+     were on and there is no `upgrade` route. Two callers used to navigate to
+     one anyway: routeName() fell back to 'chat', render() saw no change and
+     returned, and the person who had just been told they were out of quota got
+     nothing at all while the address bar read #/upgrade. */
+  openUpgrade: () => $('#nav-upgrade')?.click(),
   refreshShell,
   store,
 };
@@ -61,10 +67,19 @@ function go(name) {
   else location.hash = `#/${name}`;
 }
 
+/* Bumped on every entry. A view module is fetched on its first visit, so two
+   quick navigations interleave: both toggle .view visibility, the second
+   unmounts what the first already unmounted, and whichever mount() resolves
+   last wins `current` - which can then disagree with the section on screen and
+   with the title above it. Anything after an await checks it is still the
+   newest call before touching shared state. */
+let renderToken = 0;
+
 async function render() {
   if (!store.state.user) return;      // the gate screen owns signed-out entirely
   const name = routeName();
   if (current?.name === name) return;
+  const token = ++renderToken;
 
   if (current?.mod?.unmount) {
     try { current.mod.unmount(); } catch (e) { console.warn(e); }
@@ -81,9 +96,11 @@ async function render() {
   });
 
   const mod = await ROUTES[name].load();
+  if (token !== renderToken) return;        // a newer navigation won
   current = { name, mod };
   host.innerHTML = '';
   await mod.mount(host, ctx);
+  if (token !== renderToken) return;
   enterView(host);
   closeSidebarOnMobile();
 }
@@ -159,9 +176,14 @@ function commands() {
     { group: 'Idź do', label: 'Chat', hint: 'rozmowa z G-Micro',
       icon: icon('<path d="M20 15a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/>'),
       run: () => go('chat') },
-    { group: 'Idź do', label: 'Image Studio', hint: 'obrazy',
+    { group: 'Idź do', label: 'Image Studio',
+      hint: store.can.image() ? 'obrazy' : 'w planie Lin',
       icon: icon('<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9.5" r="1.6"/>'),
-      run: () => go('image') },
+      /* The sidebar hides this for a free plan; the palette used to offer it
+         regardless, so Cmd-K was a way past a gate the chrome respected. It
+         still gets you there - the locked view is deliberately readable - but
+         a plan that cannot open it is sent to the plans instead. */
+      run: () => (store.can.image() ? go('image') : ctx.openUpgrade()) },
     { group: 'Idź do', label: 'Ustawienia', icon: icon('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>'),
       run: () => go('settings') },
     { group: 'Idź do', label: 'Konto', icon: icon('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/>'),

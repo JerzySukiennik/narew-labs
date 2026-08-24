@@ -262,9 +262,6 @@
 /* --------------------------------------------------------- dead versions -- */
 /* A version with no checkpoint is listed but not offered: it stays visible so
    the family history reads, and unselectable so it cannot waste a click. */
-
-.picker__item.is-dead { opacity: 0.5; cursor: not-allowed; }
-.picker__item.is-dead:hover { background: none; }
 .picker__dot[data-state='dead'] {
   background: none;
   border: 1px solid var(--text-faint);
@@ -641,6 +638,8 @@
   will-change: transform;
 }
 
+/* 44px tall on touch, which is Apple's floor and not a suggestion. This is the
+   only way to change model on a phone, and it was 34. */
 .pillnav__slot {
   position: relative;
   z-index: 1;
@@ -648,6 +647,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--sp-2);
+  min-height: 38px;
   padding: var(--sp-2) clamp(var(--sp-3), 2.4vw, var(--sp-5));
   border: 0;
   background: none;
@@ -697,6 +697,8 @@
   position: relative;
   width: 100%;
   height: 34px;
+  /* The visual groove stays 34px; the grabbable area does not. See the touch
+     rule below. */
   border-radius: 999px;
   border: 1px solid var(--line);
   background: var(--surface-2);
@@ -1001,6 +1003,11 @@
 }
 .weird__tile[data-revealed='true'] .weird__tile-img { opacity: 1; transform: scale(1); }
 
+/* Visible without a hover, and big enough to hit. An iPhone has no hover, so
+   this was an invisible-but-hit-testable control in the corner of a tile whose
+   whole surface opens the picture: you could not cancel a paint, or you cancelled
+   one by accident with nothing on screen to explain why. The ::before gives it a
+   44px target without growing the 20px dot. */
 .weird__tile-stop {
   position: absolute;
   top: 3px; right: 3px;
@@ -1018,6 +1025,19 @@
 }
 .weird__tile:hover .weird__tile-stop,
 .weird__tile-stop:focus-visible { opacity: 1; }
+.weird__tile-stop::before { content: ''; position: absolute; inset: -12px; }
+@media (hover: none) {
+  .weird__tile-stop { opacity: 0.85; }
+  /* Fingers, not pointers. Both of these are primary controls and both sat
+     under the 44px minimum - the pill is the only way to change model on a
+     phone, and the slider the only way to change version. */
+  .pillnav__slot { min-height: 44px; }
+  .vslider__channel { height: 44px; }
+  /* Grown with the channel so the inset stays 3px at both ends - the travel
+     maths in version-slider.js reads offsetWidth, so it follows on its own. */
+  .vslider__thumb { width: 38px; height: 38px; }
+  .vslider__thumb[data-big='true'] { width: 38px; height: 38px; top: 3px; }
+}
 
 .weird__tile[data-status='error'],
 .weird__tile[data-status='cancelled'] { border-style: dashed; opacity: 0.6; }

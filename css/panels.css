@@ -436,3 +436,18 @@
 /* The card keeps to the width of the fields under it rather than filling the
    sheet, so the summary stays the thing you read first. */
 .checkout__preview .crd { max-width: 20rem; margin: 0 auto; }
+
+/* The dummy-checkout notice, moved above the first field. It used to sit under
+   the pay button as fine print, which is the one place a disclosure about a
+   convincing-looking payment form is no use: by then the card number has been
+   typed. Styled as a notice rather than a footnote for the same reason. */
+.checkout__fine--lead {
+  margin: var(--sp-3) 0 var(--sp-4);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: var(--step--1);
+  text-align: left;
+}

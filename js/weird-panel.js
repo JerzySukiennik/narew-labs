@@ -60,6 +60,23 @@ let ui = null;
 let queue = [];
 let nextId = 1;
 
+/* Every finished item holds a base64 PNG, and its tile holds a second copy as
+   the img src - roughly a megabyte per five pictures, retained for the whole
+   session. Twenty is far more than anyone scrolls back through and puts a
+   ceiling on it; the oldest finished ones go first, and nothing still painting
+   is ever dropped. */
+const QUEUE_MAX = 20;
+
+function trimQueue() {
+  if (queue.length <= QUEUE_MAX) return;
+  const keep = [];
+  for (let i = 0; i < queue.length; i += 1) {
+    const item = queue[i];
+    if (item.status === 'pending' || keep.length < QUEUE_MAX) keep.push(item);
+  }
+  queue = keep;
+}
+
 const TEMPLATE = `
   <section class="weird" data-enter>
     <div class="weird__stage">
@@ -210,6 +227,7 @@ function commit() {
      so it belongs where the eye already is rather than at the end of a row that
      grows away from you. */
   queue.unshift(item);
+  trimQueue();
   renderQueue();
   start(item);
   restHint();
@@ -352,6 +370,13 @@ function versionLabel() {
 }
 
 function restHint() {
+  /* The identity check comes before the reach, not after it. Jobs deliberately
+     outlive an unmount, so this runs with no panel on screen - and reaching
+     through a null `ui` threw inside the bridge's own value handler, which then
+     never reached its `settle()`. The listener stayed attached, the job node was
+     never removed, and the tile went on spinning for a picture that had already
+     arrived. paint() had this right; this did not. */
+  if (!ui) return;
   const hint = $('#weird-hint', ui.host);
   if (!hint) return;
   /* While anything is being painted the hint reports that instead of the usual
@@ -413,7 +438,7 @@ function renderQueue() {
       <div class="weird__tile-shimmer" aria-hidden="true"></div>
       <img class="weird__tile-img" alt="${esc(item.prompt)}" hidden>
       <button type="button" class="weird__tile-stop" data-stop="${item.id}"
-              aria-label="Przerwij">×</button>
+              aria-label="${item.status === 'pending' ? 'Przerwij malowanie' : 'Usuń z kolejki'}">×</button>
     </div>`).join('');
   queue.forEach(paint);
 }
@@ -430,6 +455,10 @@ function paint(item) {
   const tile = $(`[data-item="${item.id}"]`, ui.host);
   if (!tile) return;
   tile.dataset.status = item.status;
+  /* The × cancels a running paint and removes a finished one. Calling both
+     "Przerwij" was a lie half the time. */
+  $('.weird__tile-stop', tile)?.setAttribute(
+    'aria-label', item.status === 'pending' ? 'Przerwij malowanie' : 'Usuń z kolejki');
 
   if (item.status === 'done' && item.image) {
     const img = $('.weird__tile-img', tile);
@@ -503,6 +532,12 @@ function openViewer(item, origin) {
   if (!item?.image) return;
   const node = document.createElement('div');
   node.className = 'weird__viewer';
+  /* The Tab trap below is enforced either way; without this a screen reader is
+     never told a dialog opened, so the trap reads as the page having stopped
+     working. */
+  node.setAttribute('role', 'dialog');
+  node.setAttribute('aria-modal', 'true');
+  node.setAttribute('aria-label', `Podgląd: ${item.prompt}`);
   node.innerHTML = `
     <button type="button" class="weird__viewer-close" id="wv-close" aria-label="Zamknij">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
@@ -513,7 +548,7 @@ function openViewer(item, origin) {
       <figcaption class="muted">${esc(item.prompt)}</figcaption>
     </figure>
     <div class="weird__viewer-actions">
-      <a class="btn" id="wv-save" download="g-weird.png" href="${esc(item.image)}">Pobierz</a>
+      <a class="btn" id="wv-save" download="g-weird.png" href="#">Pobierz</a>
       <button type="button" class="btn" id="wv-share" hidden>Udostępnij</button>
     </div>`;
   document.body.append(node);
@@ -558,14 +593,23 @@ function openViewer(item, origin) {
   flip(true);
 
   let closing = false;
-  const close = () => {
+  /* Declared before close() captures it: a `let` read ahead of its initialiser
+     is a ReferenceError, not undefined. */
+  let blobUrl = null;
+
+  /* refocus:false for the arrow path. Walking to the next picture closes this
+     viewer and opens the next one immediately, so the delayed refocus would fire
+     380ms later and yank focus out of the viewer you are now looking at, down
+     into the hidden prompt input. */
+  const close = ({ refocus = true } = {}) => {
     if (closing) return;
     closing = true;
     document.removeEventListener('keydown', onKey);
     flip(false);
     setTimeout(() => {
       node.remove();
-      $('#weird-ghost', ui.host)?.focus({ preventScroll: true });
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      if (refocus && ui) $('#weird-ghost', ui.host)?.focus({ preventScroll: true });
     }, reduced() ? 0 : 380);
   };
   /* Full screen means full screen: Tab must not wander back into the page
@@ -582,7 +626,11 @@ function openViewer(item, origin) {
       const next = done[at + (e.key === 'ArrowRight' ? 1 : -1)];
       if (!next) return;
       e.preventDefault();
-      close();
+      /* Removed now rather than on the flip's timer, so two viewers never
+         coexist - the open/close bookkeeping elsewhere assumes there is at
+         most one. */
+      close({ refocus: false });
+      node.remove();
       openViewer(next, $(`[data-item="${next.id}"]`, ui.host));
       return;
     }
@@ -604,6 +652,19 @@ function openViewer(item, origin) {
      that opens a share sheet without the image in it is worse than no button,
      and on desktop that is exactly what the file-less path does. */
   const file = toFile(item);
+
+  /* A blob, not the data: URL. Safari on iOS ignores `download` on data: and
+     refuses to navigate to one, so the button was inert on the one platform
+     this app targets most - and the base64 string was being pushed through the
+     DOM a second time for nothing. Revoked when the viewer closes. */
+  const save = $('#wv-save', node);
+  if (file) {
+    blobUrl = URL.createObjectURL(file);
+    save.href = blobUrl;
+  } else {
+    save.hidden = true;
+  }
+
   if (file && navigator.canShare?.({ files: [file] })) {
     const share = $('#wv-share', node);
     share.hidden = false;

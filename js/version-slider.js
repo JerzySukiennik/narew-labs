@@ -22,6 +22,12 @@ import { makeSpring, drag, project, stretch, TIGHT, LOOSE } from './spring.js';
 let ui = null;
 
 export function mountSlider(host, versions, { onPick, current }) {
+  /* Any previous instance goes first, unconditionally. Both of these keep a
+     module-level singleton and register a window resize listener, so a mount
+     that skipped the unmount left the old one alive - painting into detached
+     nodes on every resize, for the rest of the session. Owning that here means
+     no caller can forget. */
+  unmountSlider();
   if (!versions.length) { host.innerHTML = ''; return null; }
 
   host.innerHTML = `

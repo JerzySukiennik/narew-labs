@@ -20,6 +20,12 @@ import { makeSpring, drag, project, stretch, TIGHT, LOOSE } from './spring.js';
 let ui = null;
 
 export function mountNav(host, items, { onPick, current }) {
+  /* Any previous instance goes first, unconditionally. Both of these keep a
+     module-level singleton and register a window resize listener, so a mount
+     that skipped the unmount left the old one alive - painting into detached
+     nodes on every resize, for the rest of the session. Owning that here means
+     no caller can forget. */
+  unmountNav();
   host.innerHTML = `
     <div class="pillnav" role="radiogroup" aria-label="Model">
       <div class="pillnav__track" id="pn-track">

@@ -100,11 +100,23 @@ const loadGsap = import('https://cdn.jsdelivr.net/npm/gsap@3.12.5/+esm')
   })
   .catch(() => { /* the stand-in stays; the app is merely still */ });
 
-/* Waiting a moment keeps the animation on a normal load, and the ceiling keeps
-   a hanging CDN from holding the first paint hostage. 2.5 s is past a warm
-   jsdelivr fetch by an order of magnitude and still under the point where a
-   blank screen reads as broken. A late arrival still swaps itself in. */
-await Promise.race([loadGsap, new Promise((r) => setTimeout(r, 2500))]);
+/**
+ * Deliberately NOT awaited at the top level.
+ *
+ * Every module imports this one, so a top-level await here blocked main.js's
+ * body - boot(), and therefore the question of who is signed in. On a network
+ * that blocks the CDN (a filter, a content blocker) the ceiling was not a
+ * missing animation, it was the entire app not starting for two and a half
+ * seconds while the boot gate sat there.
+ *
+ * Nothing needs it to have arrived: the live binding above swaps the real gsap
+ * in whenever it lands, and enter() and toast() both check before using it. The
+ * only caller that genuinely wants the first animation to play awaits `ready`
+ * itself.
+ */
+export const gsapReady = Promise.race([
+  loadGsap, new Promise((r) => setTimeout(r, 2500)),
+]);
 
 /* ----------------------------------------------------------------- toast -- */
 
@@ -185,20 +197,28 @@ export function revealText(node, text, { by = 'char', step = 22 } = {}) {
  * that actually helps.
  */
 const CAUSES = [
-  [/offline|network|unavailable|fetch|Failed to fetch/i,
+  /* Order matters: find() returns the first hit, so specific patterns come
+     before general ones. Storage-full used to sit BELOW the quota rule and was
+     therefore unreachable - every QuotaExceededError read "za dużo naraz". */
+  [/QuotaExceeded|storage.?full|exceeded the quota/i,
+   'Skończyło się miejsce w przeglądarce. Wyczyść historię w Ustawieniach.'],
+  [/offline|network|unavailable|failed to fetch/i,
    'Nie ma połączenia. Sprawdź internet i spróbuj jeszcze raz.'],
   [/permission|insufficient|unauthenticated|unauthorized/i,
    'Nie mam dostępu do tych danych. Wyloguj się i zaloguj ponownie.'],
-  [/quota|resource-exhausted|too many|rate/i,
+  /* Whole phrases, anchored. A bare /rate/ matched "generate", "separate" and
+     "operation aborted" - and the two picture models are literally in the
+     business of generating, so it would have fired constantly. */
+  [/resource-exhausted|too many requests|rate limit|\b429\b/i,
    'Za dużo naraz. Odczekaj chwilę i spróbuj jeszcze raz.'],
-  [/not-found|no such|404/i, 'Tego już tam nie ma.'],
-  [/timeout|deadline/i, 'Trwało to za długo i przerwałem. Spróbuj jeszcze raz.'],
-  [/quota.?exceeded|storage full|QuotaExceeded/i,
-   'Skończyło się miejsce w przeglądarce. Wyczyść historię w Ustawieniach.'],
+  [/not-found|no such|\b404\b/i, 'Tego już tam nie ma.'],
+  [/timeout|timed out|deadline/i,
+   'Trwało to za długo i przerwałem. Spróbuj jeszcze raz.'],
 ];
 
 export function problem(error, fallback = 'Spróbuj jeszcze raz.') {
-  const raw = String(error?.message || error || '');
+  /* Firebase puts the useful discriminator in `code`, not in `message`. */
+  const raw = `${error?.code || ''} ${error?.message || error || ''}`;
   console.warn('[narew]', error);
   const hit = CAUSES.find(([re]) => re.test(raw));
   return hit ? hit[1] : fallback;
@@ -245,6 +265,57 @@ const focusables = (panel) => $$(FOCUSABLE, panel).filter((n) => (
   !n.hidden && n.offsetParent !== null
 ));
 
+/**
+ * Keep Tab inside one surface.
+ *
+ * Both layers declare `role="dialog" aria-modal="true"`, which is a promise that
+ * nothing behind them is reachable. The dialog kept it and the sheet did not -
+ * Tab walked straight out of the plans into a page that was still focusable and,
+ * thanks to is-behind-drawer, still visible behind it. One implementation now,
+ * so the two cannot drift again.
+ *
+ * Returns the focusin handler so the caller can remove it on close; a listener
+ * on document outlives the element it was guarding otherwise.
+ */
+function trapFocus(shell, panel) {
+  const onKeydown = (e) => {
+    if (e.key !== 'Tab') return;
+    const items = focusables(panel);
+    if (!items.length) { e.preventDefault(); return; }
+    const first = items[0];
+    const last = items[items.length - 1];
+    const active = document.activeElement;
+    if (e.shiftKey && (active === first || !panel.contains(active))) {
+      e.preventDefault();
+      last.focus({ preventScroll: true });
+    } else if (!e.shiftKey && (active === last || !panel.contains(active))) {
+      e.preventDefault();
+      first.focus({ preventScroll: true });
+    }
+  };
+  /* A focus that gets in anyway - the address bar, a stray programmatic focus -
+     is pulled back rather than left outside a surface the reader cannot see
+     past.
+     Deferred by a tick: calling focus() synchronously inside focusin lands in
+     the middle of the browser's own focus change, which can then finish and
+     overwrite it. NOT verified here - a browser tab without focus fires no
+     focus events at all, so this guard cannot be exercised from an automated
+     pane. The deferral is the defensive reading; it is the behaviour to check
+     by hand in a real window. */
+  const onFocusIn = (e) => {
+    if (panel.contains(e.target)) return;
+    setTimeout(() => {
+      /* Only if the surface is still up and focus is still outside it. */
+      if (panel.isConnected && !panel.contains(document.activeElement)) {
+        focusables(panel)[0]?.focus({ preventScroll: true });
+      }
+    }, 0);
+  };
+  shell.addEventListener('keydown', onKeydown);
+  document.addEventListener('focusin', onFocusIn);
+  return { onFocusIn };
+}
+
 export function overlay(node, { dismissible = true, onClose, label = 'Okno' } = {}) {
   /* Read before closing whatever is open: closing restores focus, and the
      element that opened *this* overlay is the one we want to come back to. */
@@ -274,29 +345,7 @@ export function overlay(node, { dismissible = true, onClose, label = 'Okno' } = 
   const close = () => closeOverlay();
   if (dismissible) shell.querySelector('.overlay__scrim').addEventListener('click', close);
 
-  /* The trap. Tab is cycled inside the panel, and a focus that gets in anyway —
-     the address bar, a stray programmatic focus — is pulled back on the way in
-     rather than left outside a dialog the reader cannot see past. */
-  const onKeydown = (e) => {
-    if (e.key !== 'Tab') return;
-    const items = focusables(panel);
-    if (!items.length) { e.preventDefault(); return; }
-    const first = items[0];
-    const last = items[items.length - 1];
-    const active = document.activeElement;
-    if (e.shiftKey && (active === first || !panel.contains(active))) {
-      e.preventDefault();
-      last.focus({ preventScroll: true });
-    } else if (!e.shiftKey && (active === last || !panel.contains(active))) {
-      e.preventDefault();
-      first.focus({ preventScroll: true });
-    }
-  };
-  const onFocusIn = (e) => {
-    if (!panel.contains(e.target)) focusables(panel)[0]?.focus({ preventScroll: true });
-  };
-  shell.addEventListener('keydown', onKeydown);
-  document.addEventListener('focusin', onFocusIn);
+  const { onFocusIn } = trapFocus(shell, panel);
 
   openOverlayState = { host, shell, onClose, dismissible, opener, onFocusIn };
 
@@ -411,15 +460,14 @@ const project = (velocity, deceleration = 0.998) =>
   (velocity / 1000) * deceleration / (1 - deceleration);
 
 export function drawer(node, { label = 'Panel', onClose } = {}) {
-  closeDrawer();
-  closeOverlay();
+  closeDrawer();     // also clears any exit timer still pending from the last one
 
   const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  const host = $('#overlay-host');
+  const host = $('#drawer-host');
   const shell = el(`
     <div class="drawer" role="dialog" aria-modal="true" aria-label="${esc(label)}">
       <div class="drawer__scrim"></div>
-      <div class="drawer__sheet">
+      <div class="drawer__sheet" tabindex="-1">
         <div class="drawer__grip" aria-hidden="true"><span></span></div>
         <div class="drawer__body"></div>
       </div>
@@ -506,7 +554,13 @@ export function drawer(node, { label = 'Panel', onClose } = {}) {
     sheet.style.transition = `transform ${Math.round(duration)}ms cubic-bezier(0.32, 0.72, 0, 1)`;
     sheet.style.transform = `translateY(${sheet.offsetHeight}px)`;
     shell.dataset.open = 'false';
-    setTimeout(closeDrawer, reduced() ? 0 : Math.round(duration));
+    /* The handle is kept so a sheet opened during this one's exit animation is
+       not torn down by it. Flick one away, open another inside ~320ms, and the
+       stale timer used to close the sheet the user had just asked for. */
+    if (openDrawer) {
+      clearTimeout(openDrawer.timer);
+      openDrawer.timer = setTimeout(closeDrawer, reduced() ? 0 : Math.round(duration));
+    }
   };
 
   sheet.addEventListener('pointerdown', onDown);
@@ -515,7 +569,8 @@ export function drawer(node, { label = 'Panel', onClose } = {}) {
   sheet.addEventListener('pointercancel', onUp);
   scrim.addEventListener('click', () => dismiss());
 
-  openDrawer = { host, onClose, opener, app };
+  const { onFocusIn } = trapFocus(shell, sheet);
+  openDrawer = { host, onClose, opener, app, onFocusIn, timer: null };
   (node.querySelector('input, button, [tabindex]') || sheet).focus?.({ preventScroll: true });
 
   return { close: () => dismiss() };
@@ -523,8 +578,10 @@ export function drawer(node, { label = 'Panel', onClose } = {}) {
 
 export function closeDrawer() {
   if (!openDrawer) return;
-  const { host, onClose, opener, app } = openDrawer;
+  const { host, onClose, opener, app, onFocusIn, timer } = openDrawer;
   openDrawer = null;
+  clearTimeout(timer);
+  if (onFocusIn) document.removeEventListener('focusin', onFocusIn);
   app?.classList.remove('is-behind-drawer');
   host.hidden = true;
   host.innerHTML = '';

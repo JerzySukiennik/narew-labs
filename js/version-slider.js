@@ -30,8 +30,7 @@ export function mountSlider(host, versions, { onPick, current }) {
          aria-valuemax="${versions.length}" aria-valuenow="1" aria-valuetext="">
       <div class="vslider__channel" id="vs-channel">
         <div class="vslider__fill" id="vs-fill"></div>
-        ${versions.map((_, i) => `<span class="vslider__tick" style="left:${
-          (i / Math.max(1, versions.length - 1)) * 100}%"></span>`).join('')}
+        ${versions.map(() => '<span class="vslider__tick"></span>').join('')}
         <div class="vslider__thumb" id="vs-thumb"><span id="vs-thumb-label"></span></div>
       </div>
       <p class="vslider__caption muted" id="vs-caption"></p>
@@ -49,7 +48,24 @@ export function mountSlider(host, versions, { onPick, current }) {
 
   /* Travel is measured in whole steps, so the thumb's own width is subtracted
      once here rather than being wrong at both ends. */
-  const span = () => Math.max(1, channel.clientWidth - thumb.offsetWidth);
+  /* The thumb sits INSET_X from the left, so its travel is the channel minus
+     its own width minus that inset twice — once at each end. Subtracting the
+     inset only once let the thumb finish 3px past the right edge, where the
+     channel's overflow:hidden sliced a crescent off it. */
+  const INSET_X = 3;
+  const span = () =>
+    Math.max(1, channel.clientWidth - thumb.offsetWidth - INSET_X * 2);
+
+  /* Ticks were placed at i/(n-1)*100%, which puts the LAST one's left edge
+     exactly on the channel's right edge — so the whole dot fell outside and was
+     clipped away. They are rungs under the thumb, so they belong at the thumb's
+     centre positions and nowhere else. */
+  const layoutTicks = () => {
+    const ticks = channel.querySelectorAll('.vslider__tick');
+    ticks.forEach((t, i) => {
+      t.style.left = `${INSET_X + thumb.offsetWidth / 2 + (i / last) * span()}px`;
+    });
+  };
 
   const paint = (pos, velocity) => {
     const x = (pos / last) * span();
@@ -120,13 +136,22 @@ export function mountSlider(host, versions, { onPick, current }) {
   };
   root.addEventListener('keydown', onKey);
 
-  const grow = (on) => { if (!reduced()) thumb.dataset.big = String(on); };
+  /* Hover grows the thumb from 26px to 30px, which changes its travel — so the
+     rungs, which are placed at thumb-centre positions, have to be re-placed
+     with it. Without this they drift 2px away from the thumb on hover. */
+  const grow = (on) => {
+    if (reduced()) return;
+    thumb.dataset.big = String(on);
+    layoutTicks();
+    paint(spring.value, 0);
+  };
   channel.addEventListener('pointerenter', () => grow(true));
   channel.addEventListener('pointerleave', () => grow(false));
 
-  const onResize = () => paint(spring.value, 0);
+  const onResize = () => { layoutTicks(); paint(spring.value, 0); };
   addEventListener('resize', onResize);
 
+  layoutTicks();
   paint(index, 0);
   describe();
 

@@ -22,6 +22,7 @@ import {
   deleteDoc, query, where, orderBy, limit, serverTimestamp, writeBatch,
 } from './firebase.js';
 import { resolveClient } from './bridge.js';
+import { problem } from './ui.js';
 
 /* ------------------------------------------------------------------ tiers -- */
 
@@ -31,7 +32,13 @@ export const TIERS = {
     name: 'Płotka',
     price: 0,
     blurb: 'Mała, szybka, wszędzie jej pełno.',
-    perks: ['Chat z G-Micro i G-Mini', 'Limit tygodniowy i pięciogodzinny', 'Historia rozmów'],
+    /* The middle line used to read "Limit tygodniowy i pięciogodzinny", which
+       names a restriction as though it were a feature and gives no number. If
+       there is a ceiling, say where it is: someone deciding between plans is
+       asking exactly that, and a plan list that dodges the question reads as
+       hiding something. */
+    perks: ['Chat z G-Micro i G-Mini', 'Ok. 70 tys. znaków na 5 godzin, 430 tys. na tydzień',
+            'Historia rozmów zapisana'],
     chat: true,
     image: false,
     video: false,
@@ -42,7 +49,8 @@ export const TIERS = {
     name: 'Lin',
     price: 19,
     blurb: 'Siedzi przy dnie, ale wyciąga więcej.',
-    perks: ['Chat bez limitu', 'Image Studio', 'Historia bez ograniczeń'],
+    perks: ['Chat bez limitu', 'Image Studio - G-Images, G-Doodle, G-Weird',
+            'Historia bez ograniczeń'],
     chat: true,
     image: true,
     video: false,
@@ -53,7 +61,8 @@ export const TIERS = {
     name: 'Sum',
     price: 49,
     blurb: 'Największy w tej rzece.',
-    perks: ['Wszystko bez limitów', 'Video Studio, gdy wystartuje', 'Pierwszeństwo w kolejce do Maca'],
+    perks: ['Wszystko z Lina, bez limitów', 'Video Studio, kiedy powstanie',
+            'Pierwszeństwo w kolejce do Maca'],
     chat: true,
     image: true,
     video: true,
@@ -253,7 +262,7 @@ export async function redeemPromo(raw) {
     await grantTier(tier, days);
     return { ok: true, message: `Kod przyjęty - masz teraz ${TIERS[tier]?.name || tier}.`, tier };
   } catch (e) {
-    return { ok: false, message: `Nie mogę sprawdzić kodu: ${e.message}` };
+    return { ok: false, message: `Nie sprawdziłem kodu. ${problem(e)}` };
   }
 }
 

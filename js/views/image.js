@@ -9,7 +9,7 @@
 
 import * as store from '../store.js';
 import { IMAGE_MODELS, MODEL_FAMILIES, DEFAULT_IMAGE_MODEL } from '../bridge.js';
-import { $, $$, esc, toast, reduced, enter, revealText } from '../ui.js';
+import { $, $$, esc, toast, reduced, enter, revealText, problem } from '../ui.js';
 import { mountPanel, unmountPanel } from '../doodle-panel.js';
 import { mountPanel as mountWeird, unmountPanel as unmountWeird,
          setVersion as setWeirdVersion } from '../weird-panel.js';
@@ -227,7 +227,7 @@ export async function mount(root, ctx) {
       <div id="weird-host" hidden></div>
 
       <section class="studio__step" data-enter>
-        <h3 class="studio__step-title"><span class="studio__step-n">1</span> Templates</h3>
+        <h3 class="studio__step-title"><span class="studio__step-n">1</span> Gotowe przeróbki</h3>
         <div class="presets" role="list" aria-label="Gotowe przeróbki">
           ${PRESETS.map((p) => `
             <button type="button" class="preset" role="listitem" data-prompt="${esc(p.prompt)}">
@@ -478,7 +478,7 @@ async function load(file) {
   try {
     setImage(await shrink(file));
   } catch (e) {
-    toast(`Nie mogę wczytać zdjęcia: ${e.message}`, 'error', 6000);
+    toast(`Nie wczytałem tego zdjęcia. ${problem(e, 'Spróbuj innego pliku.')}`, 'error', 6000);
   }
 }
 

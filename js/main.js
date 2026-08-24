@@ -15,7 +15,7 @@ import {
 } from './firebase.js';
 import { MacBridge, resolveClient } from './bridge.js';
 import * as store from './store.js';
-import { $, $$, toast, enterView, gsap, reduced, closeOverlay, enter } from './ui.js';
+import { $, $$, toast, enterView, gsap, reduced, closeOverlay, enter, problem } from './ui.js';
 import { paletteOpen, closePalette } from './palette.js';
 
 /* ------------------------------------------------------------- referral -- */
@@ -37,7 +37,7 @@ const ROUTES = {
   chat: { title: 'Chat', load: () => import('./views/chat.js') },
   image: { title: 'Image Studio', load: () => import('./views/image.js') },
   video: { title: 'Video Studio', load: () => import('./views/video.js') },
-  settings: { title: 'Settings', load: () => import('./views/settings.js') },
+  settings: { title: 'Ustawienia', load: () => import('./views/settings.js') },
   account: { title: 'Konto', load: () => import('./views/account.js') },
 };
 
@@ -162,7 +162,7 @@ function commands() {
     { group: 'Idź do', label: 'Image Studio', hint: 'obrazy',
       icon: icon('<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9.5" r="1.6"/>'),
       run: () => go('image') },
-    { group: 'Idź do', label: 'Settings', icon: icon('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>'),
+    { group: 'Idź do', label: 'Ustawienia', icon: icon('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>'),
       run: () => go('settings') },
     { group: 'Idź do', label: 'Konto', icon: icon('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/>'),
       run: () => go('account') },
@@ -275,7 +275,7 @@ function initAvatar() {
       refreshShell();
       toast('Zdjęcie zmienione.', 'ok');
     } catch (err) {
-      toast(`Nie udało się: ${err.message}`, 'error', 6000);
+      toast(`Nie zmieniłem zdjęcia. ${problem(err)}`, 'error', 6000);
     }
   });
 }
@@ -317,8 +317,12 @@ function initBridge() {
       node.dataset.state = online ? 'online' : 'offline';
       const names = models.filter((m) => m.available).map((m) => m.name);
       $('#bridge-text').textContent = online
-        ? (names.length ? names.join(', ') : 'brak modeli')
-        : 'Mac w domu śpi';
+        /* Names when there are names, because "which models can answer right
+           now" is the actual question behind this indicator. "brak modeli" was
+           technically true and told nobody anything - if the Mac is up but has
+           no checkpoints, the thing worth saying is that it has none yet. */
+        ? (names.length ? names.join(', ') : 'Mac działa, żaden model nie wgrany')
+        : 'Mac w Gzowie śpi';
       document.dispatchEvent(new CustomEvent('narew:presence', { detail: { online, models } }));
       drawLink();
     },
@@ -345,7 +349,7 @@ function drawLink() {
   node.dataset.level = String(level);
   node.title = bridge.online
     ? `Sygnał ${level}/4 · ostatni puls ${Math.round(age)} s temu`
-    : 'Mac w domu śpi';
+    : 'Mac w Gzowie śpi';
 }
 
 /* ----------------------------------------------------------------- shell -- */
@@ -485,7 +489,7 @@ async function boot() {
         bridge?.setClient(store.state.profile?.clientId);
         sessionStorage.removeItem(REF_KEY);
       } catch (e) {
-        toast(`Nie mogę wczytać konta: ${e.message}`, 'error', 8000);
+        toast(`Nie wczytałem twojego konta. ${problem(e)}`, 'error', 8000);
       }
     } else {
       store.resetLocalState();

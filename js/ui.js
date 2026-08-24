@@ -167,6 +167,43 @@ export function revealText(node, text, { by = 'char', step = 22 } = {}) {
   return node;
 }
 
+
+/**
+ * Turn a thrown error into a sentence a person can act on.
+ *
+ * Thirteen places used to paste `e.message` straight into a toast, which is how
+ * someone ends up reading "FirebaseError: Missing or insufficient permissions"
+ * on a screen about saving a conversation. That string was written for whoever
+ * wrote the library, and it tells the person in front of it two things: that
+ * something broke, and that nobody thought about them.
+ *
+ * The real error still goes to the console, where it is useful. What comes back
+ * from here names the thing that failed in the user's own terms and, wherever
+ * the cause is knowable, says what to do about it. Where it is not knowable it
+ * says so plainly rather than guessing - "coś poszło nie tak" is not an
+ * explanation, but it is at least honest, and it is paired with the one action
+ * that actually helps.
+ */
+const CAUSES = [
+  [/offline|network|unavailable|fetch|Failed to fetch/i,
+   'Nie ma połączenia. Sprawdź internet i spróbuj jeszcze raz.'],
+  [/permission|insufficient|unauthenticated|unauthorized/i,
+   'Nie mam dostępu do tych danych. Wyloguj się i zaloguj ponownie.'],
+  [/quota|resource-exhausted|too many|rate/i,
+   'Za dużo naraz. Odczekaj chwilę i spróbuj jeszcze raz.'],
+  [/not-found|no such|404/i, 'Tego już tam nie ma.'],
+  [/timeout|deadline/i, 'Trwało to za długo i przerwałem. Spróbuj jeszcze raz.'],
+  [/quota.?exceeded|storage full|QuotaExceeded/i,
+   'Skończyło się miejsce w przeglądarce. Wyczyść historię w Ustawieniach.'],
+];
+
+export function problem(error, fallback = 'Spróbuj jeszcze raz.') {
+  const raw = String(error?.message || error || '');
+  console.warn('[narew]', error);
+  const hit = CAUSES.find(([re]) => re.test(raw));
+  return hit ? hit[1] : fallback;
+}
+
 export function toast(message, kind = 'info', ms = 3600) {
   const host = $('#toasts');
   if (!host) return;
@@ -337,9 +374,12 @@ export function confirmDestructive({ title, body, word, action }) {
       yes.disabled = false;
       const err = node.querySelector('#confirm-error');
       err.hidden = false;
+      /* The re-login case is the one worth naming: it is not a failure, it is a
+         precaution, and saying which of the two it is changes what the person
+         does next. */
       err.textContent = e?.code === 'auth/requires-recent-login'
-        ? 'Ze względów bezpieczeństwa trzeba się najpierw zalogować jeszcze raz, a potem spróbować ponownie.'
-        : `Nie udało się: ${e.message}`;
+        ? 'Ze względów bezpieczeństwa zaloguj się jeszcze raz i spróbuj ponownie.'
+        : problem(e);
     }
   });
 

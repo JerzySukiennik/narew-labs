@@ -8,7 +8,7 @@
 
 import { signOutNow, linkGoogle, explainAuthError } from '../firebase.js';
 import * as store from '../store.js';
-import { $, $$, esc, toast, confirmDestructive, relativeTime } from '../ui.js';
+import { $, $$, esc, toast, confirmDestructive, relativeTime, problem } from '../ui.js';
 
 let handlers = [];
 let ctxRef = null;
@@ -186,7 +186,7 @@ async function renderHistory(root) {
       await store.deleteConversation(btn.dataset.del);
       await renderHistory(root);
     } catch (e) {
-      toast(`Nie udało się usunąć: ${e.message}`, 'error');
+      toast(`Nie usunąłem konta. ${problem(e)}`, 'error', 6000);
     }
   }));
 }

@@ -13,7 +13,7 @@
  */
 
 import * as doodle from './doodle.js';
-import { $, esc, toast, reduced } from './ui.js';
+import { $, esc, problem, toast, reduced } from './ui.js';
 
 const SUGGESTIONS = ['smok', 'kot', 'ośmiornica', 'zamek', 'pizza', 'pingwin',
                      'wieża eiffla', 'gitara'];
@@ -78,7 +78,7 @@ async function ensureModel() {
       setStatus('Model jeszcze się uczy - wagi nie są jeszcze na serwerze. '
                 + 'Nic tu nie udaje rysowania.', 'warn');
     } else {
-      setStatus(`Nie udało się wczytać modelu: ${esc(err.message)}`, 'warn');
+      setStatus(esc(problem(err, 'Nie wczytałem modelu. Odśwież stronę i spróbuj jeszcze raz.')), 'warn');
     }
     return false;
   }

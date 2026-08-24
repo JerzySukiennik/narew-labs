@@ -8,7 +8,7 @@
  */
 
 import * as store from '../store.js';
-import { $, $$, el, esc, fmt, toast, overlay, closeOverlay, drawer, confirmDestructive, copyText, reduced, enter } from '../ui.js';
+import { $, $$, el, esc, fmt, toast, overlay, closeOverlay, drawer, confirmDestructive, copyText, reduced, enter, problem } from '../ui.js';
 
 /* One-stroke silhouettes. Drawn to scale against each other: the płotka is
    slight, the lin is deep-bodied, the sum is long and has barbels. */
@@ -78,7 +78,7 @@ function render(root) {
   root.innerHTML = `
     <div class="page page--wide">
       <header class="page__head" data-enter>
-        <h2 class="title">Upgrade</h2>
+        <h2 class="title">Plan</h2>
         <p class="page__lede">
           Masz teraz <strong>${esc(current.name)}</strong>${until ? ` - do ${new Date(until).toLocaleDateString('pl')}` : ''}.
         </p>
@@ -284,7 +284,7 @@ function checkout(tierId, root) {
       if (root) render(root);
     } catch (err) {
       e.currentTarget.disabled = false;
-      showError(node, `Nie udało się zmienić planu: ${err.message}`);
+      showError(node, `Nie zmieniłem planu. ${problem(err)}`);
     }
   });
   node.querySelector('#promo-form').addEventListener('submit', (e) => redeem(e, node, root));

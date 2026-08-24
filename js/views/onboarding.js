@@ -5,7 +5,7 @@
  */
 
 import * as store from '../store.js';
-import { $, el, esc, gsap, reduced, toast } from '../ui.js';
+import { $, el, esc, gsap, reduced, toast, problem } from '../ui.js';
 
 const INTERESTS = [
   { id: 'chat', label: 'Rozmowa', note: 'pytania, listy, gadanie' },
@@ -48,7 +48,7 @@ export function showOnboarding(root) {
 
         <section class="onboard__panel" id="ob-3" hidden>
           <h2 class="title">Który plan?</h2>
-          <p class="muted">Płotka wystarczy na start - zawsze można zmienić w Upgrade.</p>
+          <p class="muted">Płotka wystarczy na start. Plan zmienisz kiedy chcesz.</p>
           <div class="onboard__tiers">
             ${TIERS_ORDER.map((id) => {
               const t = store.TIERS[id];
@@ -141,7 +141,7 @@ export function showOnboarding(root) {
         resolve(pickedTier);
       } catch (e) {
         btn.disabled = false;
-        toast(`Nie zapisałem: ${e.message}`, 'error', 6000);
+        toast(`Nie zapisałem ustawień. ${problem(e)}`, 'error', 6000);
       }
     });
   });

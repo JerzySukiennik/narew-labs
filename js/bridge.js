@@ -17,6 +17,7 @@
  */
 
 import { rtdb } from './firebase.js';
+import { problem } from './ui.js';
 import {
   ref, push, set, remove, onValue, off,
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
@@ -329,7 +330,7 @@ export class MacBridge {
       if (typeof v.text === 'string') latest = v.text;
       onUpdate(v);
       if (v.done) settle();
-    }, (e) => end(`Straciłem nasłuch na odpowiedzi: ${e.message}`));
+    }, (e) => end(`Straciłem połączenie w trakcie odpowiedzi. ${problem(e)}`));
 
     set(jobRef, {
       model: job.model,
@@ -337,7 +338,7 @@ export class MacBridge {
       at: Date.now(),
       ...(job.image ? { image: job.image } : {}),
       ...(job.history?.length ? { history: job.history } : {}),
-    }).catch((e) => end(`Nie mogę wysłać zadania: ${e.message}`));
+    }).catch((e) => end(`Nie wysłałem zadania do Maca. ${problem(e)}`));
 
     arm();
 

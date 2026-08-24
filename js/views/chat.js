@@ -12,7 +12,7 @@
 
 import * as store from '../store.js';
 import { CHAT_MODELS } from '../bridge.js';
-import { $, $$, el, esc, toast, overlayOpen, gsap, reduced, enter } from '../ui.js';
+import { $, $$, el, esc, toast, overlayOpen, gsap, reduced, enter, problem } from '../ui.js';
 
 const SUGGESTIONS = [
   'Kim jesteś?', 'Wymień trzy owoce.', 'Czym jest Warszawa?',
@@ -489,7 +489,7 @@ async function attach(file) {
   try {
     setImage(await shrink(file));
   } catch (e) {
-    toast(`Nie mogę wczytać pliku: ${e.message}`, 'error');
+    toast(`Nie wczytałem tego pliku. ${problem(e, 'Spróbuj innego zdjęcia.')}`, 'error', 5000);
   }
 }
 
@@ -709,7 +709,7 @@ async function finish(session, note) {
   } catch (e) {
     /* A failed save used to be a console line nobody reads, which meant a
        conversation could quietly not exist. Say it out loud instead. */
-    toast(`Nie zapisałem tej rozmowy: ${e.message}`, 'error', 6000);
+    toast(`Nie zapisałem tej rozmowy. ${problem(e)}`, 'error', 6000);
   }
 }
 
@@ -875,6 +875,6 @@ async function openConversation(id) {
     scrollDown(true);
     syncComposer();
   } catch (e) {
-    toast(`Nie mogę otworzyć rozmowy: ${e.message}`, 'error');
+    toast(`Nie otworzyłem tej rozmowy. ${problem(e)}`, 'error', 5000);
   }
 }

@@ -610,3 +610,169 @@
   .drawer__sheet, .drawer__scrim, .is-behind-drawer { transition: none !important; }
   .is-behind-drawer { transform: none; }
 }
+
+/* ------------------------------------------------------------- palette -- */
+/*
+ * Summoned navigation, so the screens can stay bare.
+ *
+ * Anchored near the top rather than dead-centre: this is a thing you type into,
+ * and a box that opens under your eyeline puts the results where the eye
+ * already went. Centring it vertically would put half the list below the fold
+ * on a laptop for no gain.
+ */
+.palette {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  grid-template-rows: minmax(6vh, 12vh) auto 1fr;
+  justify-items: center;
+  padding: 0 var(--sp-4);
+}
+.palette__scrim {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--bg) 62%, transparent);
+  backdrop-filter: blur(6px);
+  animation: pal-scrim var(--t-base) var(--ease-out) both;
+}
+@keyframes pal-scrim { from { opacity: 0; } to { opacity: 1; } }
+
+.palette__panel {
+  position: relative;
+  grid-row: 2;
+  width: min(560px, 100%);
+  max-height: min(62vh, 30rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, white 12%, var(--line-strong));
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  backdrop-filter: blur(28px) saturate(170%);
+  box-shadow: var(--shadow-lg);
+}
+.palette[data-closing] { pointer-events: none; opacity: 0; transition: opacity var(--t-fast) ease; }
+
+.palette__search {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border-bottom: 1px solid var(--line);
+  color: var(--text-muted);
+}
+.palette__input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--step-0);
+}
+.palette__input:focus { outline: none; }
+.palette__kbd {
+  padding: 2px 6px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+}
+
+.palette__list {
+  flex: 1;
+  margin: 0;
+  padding: var(--sp-2);
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.palette__group {
+  padding: var(--sp-3) var(--sp-3) var(--sp-1);
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+.palette__row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-3);
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+/* Selection follows the keyboard AND the pointer, and looks the same either
+   way - two different highlights for "where I am" is how a list ends up with
+   two cursors and no answer to which one Enter will use. */
+.palette__row[aria-selected='true'] { background: var(--surface-3); }
+.palette__icon { display: grid; place-items: center; color: var(--text-muted); flex: none; }
+.palette__row[aria-selected='true'] .palette__icon { color: var(--accent); }
+.palette__label { flex: 1; min-width: 0; }
+.palette__hint { color: var(--text-faint); font-size: var(--step--1); }
+.palette__empty { padding: var(--sp-5); color: var(--text-faint); text-align: center; }
+
+/* The rail widens under the pointer, so the icons keep their labels without
+   holding a column open on every screen forever. Pointer only: a touch device
+   has no hover, and there the drawer is still the way in. */
+@media (hover: hover) and (min-width: 861px) {
+  .app[data-sidebar='collapsed'] .sidebar:hover,
+  .app[data-sidebar='collapsed'] .sidebar:focus-within {
+    width: var(--sidebar-w);
+    box-shadow: var(--shade-2-up);
+  }
+  .app[data-sidebar='collapsed'] .sidebar {
+    position: relative;
+    z-index: 30;
+    width: var(--sidebar-w-collapsed);
+    overflow: hidden;
+    transition: width var(--t-base) var(--ease-settle),
+                box-shadow var(--t-base) var(--ease-out);
+  }
+}
+
+/* The palette's visible door. Sits where a search field would, because that is
+   where people look for one, and shows its own shortcut so using it once teaches
+   the faster way. */
+.rail-search {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: 38px;
+  margin-bottom: var(--sp-2);
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: var(--step--1);
+  cursor: pointer;
+}
+.rail-search:hover { background: var(--surface-3); color: var(--text); }
+.rail-search svg { flex: none; }
+.rail-search__label { flex: 1; text-align: left; }
+.rail-search__kbd {
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--line-strong);
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+}
+/* On the rail only the magnifier survives - the label and the key would be a
+   scrollbar's worth of text crammed into 68px. They come back on hover with
+   everything else. */
+.app[data-sidebar='collapsed'] .rail-search__label,
+.app[data-sidebar='collapsed'] .rail-search__kbd { display: none; }
+.app[data-sidebar='collapsed'] .sidebar:hover .rail-search__label,
+.app[data-sidebar='collapsed'] .sidebar:focus-within .rail-search__label,
+.app[data-sidebar='collapsed'] .sidebar:hover .rail-search__kbd,
+.app[data-sidebar='collapsed'] .sidebar:focus-within .rail-search__kbd { display: block; }

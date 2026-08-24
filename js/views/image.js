@@ -351,6 +351,11 @@ const on = (t, ty, fn) => { t.addEventListener(ty, fn); ui.handlers.push([t, ty,
 function wire() {
   on($('#studio-back', ui.root), 'click', showChooser);
 
+  /* The palette can ask for a family directly, so "G-Weird" typed into Cmd-K
+     lands on the screen rather than on the chooser in front of it. Delivered as
+     an event because the palette has no business knowing this view exists. */
+  on(document, 'narew:open-family', (e) => openFamily(e.detail));
+
   /* Availability changes when the Mac wakes or sleeps, and both new controls
      show it: the pill's dots and the slider's own state. */
   on(document, 'narew:presence', () => {

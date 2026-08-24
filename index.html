@@ -102,6 +102,19 @@
       </button>
     </div>
 
+    <!-- The palette needs a door you can see. A shortcut nobody is told about
+         is a shortcut for the person who wrote it; this is the same command,
+         reachable by pointer, and it carries its own key so using it once
+         teaches the faster way. -->
+    <button id="palette-open" class="rail-search" aria-label="Szukaj i skacz (Command K)">
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+           stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+      </svg>
+      <span class="rail-search__label">Szukaj</span>
+      <kbd class="rail-search__kbd">⌘K</kbd>
+    </button>
+
     <button id="new-chat" class="new-chat">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
            stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>

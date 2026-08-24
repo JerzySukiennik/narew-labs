@@ -16,6 +16,7 @@ import {
 import { MacBridge, resolveClient } from './bridge.js';
 import * as store from './store.js';
 import { $, $$, toast, enterView, gsap, reduced, closeOverlay, enter } from './ui.js';
+import { paletteOpen, closePalette } from './palette.js';
 
 /* ------------------------------------------------------------- referral -- */
 /* `/r/<uid>` is served by 404.html, which rewrites it to `/?ref=<uid>`. The id
@@ -104,7 +105,15 @@ function applySidebar(mode) {
 }
 
 function initSidebar() {
-  applySidebar(localStorage.getItem(SIDEBAR_KEY) === 'collapsed' ? 'collapsed' : 'expanded');
+  /* A rail by default now, not a column. It used to hold 268px of every screen
+     open forever to answer a question that is asked for about two seconds a
+     session, and that shape - permanent left sidebar - is what every chat clone
+     in the world looks like. Collapsed it is a strip of icons that widens under
+     the pointer when you actually want it, and Cmd-K is the fast path for
+     everyone who does not. Anyone who preferred it open still gets it open:
+     the stored choice wins, only the default changed. */
+  const stored = localStorage.getItem(SIDEBAR_KEY);
+  applySidebar(stored === 'expanded' ? 'expanded' : 'collapsed');
 
   $('#sidebar-toggle').addEventListener('click', () => {
     applySidebar(app.dataset.sidebar === 'collapsed' ? 'expanded' : 'collapsed');
@@ -131,6 +140,90 @@ function closeSidebarOnMobile() {
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeSidebarOnMobile();
+});
+
+/* ------------------------------------------------------------- palette -- */
+/*
+ * Navigation as something you summon, so the screens can stay bare. Cmd-K
+ * because that is what it is everywhere else and this is not the place to be
+ * original; slash is a second opening for anyone who never learned Cmd-K, but
+ * only when nothing is being typed into - on a screen whose whole premise is a
+ * blinking caret, stealing "/" would be unforgivable.
+ */
+function commands() {
+  const icon = (d) => `<svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+    stroke-linejoin="round">${d}</svg>`;
+
+  const list = [
+    { group: 'Idź do', label: 'Chat', hint: 'rozmowa z G-Micro',
+      icon: icon('<path d="M20 15a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/>'),
+      run: () => go('chat') },
+    { group: 'Idź do', label: 'Image Studio', hint: 'obrazy',
+      icon: icon('<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9.5" r="1.6"/>'),
+      run: () => go('image') },
+    { group: 'Idź do', label: 'Settings', icon: icon('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>'),
+      run: () => go('settings') },
+    { group: 'Idź do', label: 'Konto', icon: icon('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/>'),
+      run: () => go('account') },
+
+    { group: 'Modele', label: 'G-Images', hint: 'przerabia zdjęcie',
+      icon: icon('<rect x="3" y="4" width="18" height="16" rx="3"/>'),
+      run: () => openStudio('images') },
+    { group: 'Modele', label: 'G-Doodle', hint: 'rysuje z tekstu',
+      icon: icon('<path d="M4 20s2-8 8-8 4 6 8 4"/>'), run: () => openStudio('doodle') },
+    { group: 'Modele', label: 'G-Weird', hint: 'maluje z tekstu',
+      icon: icon('<circle cx="12" cy="12" r="8"/><path d="M8 14c2 2 6 2 8 0"/>'),
+      run: () => openStudio('weird') },
+
+    { group: 'Zrób', label: 'Nowa rozmowa', hint: 'zaczyna od zera',
+      icon: icon('<path d="M12 5v14M5 12h14"/>'),
+      run: () => { go('chat'); $('#new-chat')?.click(); } },
+    { group: 'Zrób', label: 'Zmień plan', hint: 'Płotka, Lin, Sum',
+      icon: icon('<path d="M4 15c4-9 12-9 16 0"/>'), run: () => $('#nav-upgrade')?.click() },
+    { group: 'Zrób', label: 'Rozwiń panel boczny',
+      icon: icon('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/>'),
+      run: () => applySidebar(app.dataset.sidebar === 'collapsed' ? 'expanded' : 'collapsed') },
+  ];
+
+  const theme = document.documentElement.dataset.theme;
+  list.push({
+    group: 'Zrób',
+    label: theme === 'light' ? 'Ciemny motyw' : 'Jasny motyw',
+    icon: icon('<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/>'),
+    run: () => setTheme(theme === 'light' ? 'dark' : 'light'),
+  });
+  return list;
+}
+
+/** Image Studio, already open on one family. */
+function openStudio(family) {
+  go('image');
+  /* The view mounts asynchronously, so the request is delivered as an event the
+     view picks up whenever it is ready rather than by reaching into it. */
+  setTimeout(() => document.dispatchEvent(
+    new CustomEvent('narew:open-family', { detail: family })), 60);
+}
+
+async function summon() {
+  if (paletteOpen()) { closePalette(); return; }
+  const { openPalette } = await import('./palette.js');
+  openPalette(commands());
+}
+
+$('#palette-open')?.addEventListener('click', summon);
+
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    summon();
+    return;
+  }
+  if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+  const el = document.activeElement;
+  if (el && el.closest('input, textarea, select, [contenteditable="true"]')) return;
+  e.preventDefault();
+  summon();
 });
 
 /* ---------------------------------------------------------------- theme -- */

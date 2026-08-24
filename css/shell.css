@@ -132,7 +132,11 @@
 
 .sidebar {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  /* One row per child, in order: brand, search, new conversation, nav, footer.
+     The nav is the only one that takes the slack. Adding the search button
+     without adding its row pushed every later child up a slot, which put "new
+     conversation" into the 1fr and stretched it to 227px. */
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   gap: var(--sp-2);
   min-width: 0;
   padding: var(--sp-3) var(--sp-3) var(--sp-4);

@@ -279,7 +279,7 @@ button:disabled:active, .btn:disabled:active { transform: none; }
    Studio heading, and G-Weird's typing. Same idea at three sizes. */
 .char-in {
   display: inline-block;
-  animation: char-in 300ms var(--ease-out) both;
+  animation: char-in var(--t-enter) var(--ease-out) both;
 }
 @keyframes char-in {
   from { opacity: 0; filter: blur(7px); }
@@ -319,7 +319,7 @@ button:active, .btn:active, .chooser__card:active,
   transform: scale(0.975);
 }
 button, .btn, .chooser__card, .preset, .doodle__chip, .vocab__chip {
-  transition: transform 110ms cubic-bezier(0.32, 0.72, 0, 1),
+  transition: transform var(--t-tap) cubic-bezier(0.32, 0.72, 0, 1),
               background var(--t-fast) var(--ease-out),
               border-color var(--t-fast) var(--ease-out),
               color var(--t-fast) var(--ease-out);
@@ -384,7 +384,7 @@ button, .btn, .chooser__card, .preset, .doodle__chip, .vocab__chip {
   color: var(--text);
   text-decoration: none;
   transform: translateY(-200%);
-  transition: transform 160ms var(--ease-out);
+  transition: transform var(--t-fast) var(--ease-out);
 }
 .skip:focus { transform: translateY(0); }
 #view-host:focus { outline: none; }
@@ -404,3 +404,26 @@ h1, h2, h3, .title, .chooser__title, .chooser__name, .studio__step-title {
   text-wrap: balance;
 }
 p, .muted, .chooser__tagline, .vslider__caption { text-wrap: pretty; }
+
+/* ------------------------------------------------------- reduced motion -- */
+/*
+ * The safety net, last so it wins.
+ *
+ * Every component here already checks the preference itself, which is the right
+ * way round - a component that knows it is not animating can pick a better
+ * still frame than a blanket override can. This exists for the case those
+ * checks miss one: a rule added later, a keyframe on a pseudo-element, an
+ * animation somebody writes next month. Someone who asked the operating system
+ * for less motion should not have to trust that we remembered every place.
+ *
+ * Not zero: a few milliseconds rather than none, so anything waiting on
+ * transitionend still hears it and does not hang half-finished.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

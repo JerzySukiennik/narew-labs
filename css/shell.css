@@ -575,7 +575,7 @@
   border-radius: var(--r-lg) var(--r-lg) 0 0;
   box-shadow: var(--shadow-lg);
   transform: translateY(100%);
-  transition: transform 420ms var(--ease-settle);
+  transition: transform var(--t-slow) var(--ease-settle);
   touch-action: none;                  /* the sheet owns the vertical gesture */
 }
 .drawer[data-open='true'] .drawer__sheet { transform: translateY(0); }

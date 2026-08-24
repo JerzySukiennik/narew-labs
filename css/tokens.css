@@ -73,9 +73,22 @@
      the default; the bouncy one is only for motion the user threw. */
   --ease-settle: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --t-fast: 140ms;
+  /* One timing scale, named for what each tier is FOR rather than how long it
+     is - the number is a consequence of the job, not the other way round. The
+     app had fourteen ad-hoc durations before this, which is how a set of
+     screens ends up feeling like it was built by several people.
+       tap    - the answer to a finger going down; below this it reads as lag
+       fast   - hover and state changes on something already on screen
+       base   - a small thing appearing or leaving
+       enter  - something arriving from elsewhere
+       slow   - a whole surface
+       travel - one object crossing the screen to another place */
+  --t-tap: 110ms;
+  --t-fast: 160ms;
   --t-base: 240ms;
+  --t-enter: 300ms;
   --t-slow: 420ms;
+  --t-travel: 480ms;
 
   --z-sidebar: 30;
   --z-scrim: 40;

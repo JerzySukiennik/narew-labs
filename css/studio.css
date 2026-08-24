@@ -526,7 +526,7 @@
   cursor: pointer;
 }
 .studio__back:hover { color: var(--text); }
-.studio__back svg { transition: transform 160ms var(--ease-out); }
+.studio__back svg { transition: transform var(--t-fast) var(--ease-out); }
 .studio__back:hover svg { transform: translateX(-2px); }
 
 .chooser {
@@ -833,13 +833,13 @@
   overflow: hidden;
   pointer-events: none;
   transition:
-    left 300ms cubic-bezier(0.5, 0, 0.2, 1),
-    top 300ms cubic-bezier(0.5, 0, 0.2, 1),
-    width 300ms cubic-bezier(0.5, 0, 0.2, 1),
-    height 300ms cubic-bezier(0.5, 0, 0.2, 1),
-    border-radius 300ms cubic-bezier(0.5, 0, 0.2, 1),
+    left var(--t-enter) cubic-bezier(0.5, 0, 0.2, 1),
+    top var(--t-enter) cubic-bezier(0.5, 0, 0.2, 1),
+    width var(--t-enter) cubic-bezier(0.5, 0, 0.2, 1),
+    height var(--t-enter) cubic-bezier(0.5, 0, 0.2, 1),
+    border-radius var(--t-enter) cubic-bezier(0.5, 0, 0.2, 1),
     border-color 200ms var(--ease-out),
-    background 300ms var(--ease-out);
+    background var(--t-enter) var(--ease-out);
 }
 
 /* Beat one: the line, drawn the size of what was written. */
@@ -861,7 +861,7 @@
   border-radius: 50%;
   transition:
     transform 440ms cubic-bezier(0.35, 0, 0.25, 1),
-    opacity 160ms ease 300ms,
+    opacity var(--t-fast) ease var(--t-enter),
     background 440ms var(--ease-out);
   background: color-mix(in srgb, var(--accent) 34%, var(--surface-2));
   opacity: 0;
@@ -924,8 +924,8 @@
   cursor: pointer;
   flex: none;
   box-shadow: var(--shade-1), var(--shade-2);
-  transition: transform 160ms cubic-bezier(0.32, 0.72, 0, 1),
-              box-shadow 160ms var(--ease-out);
+  transition: transform var(--t-fast) cubic-bezier(0.32, 0.72, 0, 1),
+              box-shadow var(--t-fast) var(--ease-out);
 }
 /* Lifts toward the pointer, and takes the press. Only once it has something to
    show - lifting a tile that is still painting promises a picture. */

@@ -1168,3 +1168,7 @@
    placeholder: showing an empty square waiting to be filled would make the
    flight decorative, when the point is that one object travels and lands. */
 .weird__tile[data-incoming] { opacity: 0; transform: scale(0.6); }
+
+/* The picked decoder version. Same treatment as the other pickers on the
+   page, so "which one is active" reads the same everywhere. */
+.doodle__chip.is-on { border-color: var(--accent); background: var(--accent-soft); }

@@ -355,7 +355,7 @@ function flashHint(text) {
    picture drawn two ways. The page owns the choice (the same version slider
    G-Images uses), so the panel is told rather than deciding, and a version
    switched mid-draw applies to the next picture instead of corrupting this one. */
-let wire = 'g-weird-1';
+let wire = 'g-weird-11';
 
 export function setVersion(next) {
   if (!next || next === wire) return;
@@ -365,8 +365,12 @@ export function setVersion(next) {
   if (ui) restHint();
 }
 
+const VERSION_LABELS = { 'g-weird': '0.9', 'g-weird-1': '1', 'g-weird-11': '1.1' };
+
 function versionLabel() {
-  return wire === 'g-weird' ? '0.9' : '1';
+  /* Tablica zamiast trojki warunkowej: przy dwoch wersjach "wszystko co nie
+     jest 0.9 to 1" bylo prawda, przy trzeciej cicho podpisywaloby 1.1 jako 1. */
+  return VERSION_LABELS[wire] || wire;
 }
 
 function restHint() {

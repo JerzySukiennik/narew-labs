@@ -161,6 +161,18 @@ export const IMAGE_MODELS = [
      frozen: reconstruction error 10.3/255 against 15.7, real detail where there
      was smear, at the cost of a fine crackle. 0.9 is the original — softer, more
      oil-painted, and kept because which one reads better is taste. */
+  /* 1.1 lamie zalozenie, na ktorym stali 0.9 i 1: to nie jest ten sam obraz
+     narysowany inaczej, tylko inny model od zera. Wlasny tokenizer obrazu —
+     siatka 24x24 zamiast 16x16, czyli 8 pikseli na token zamiast 16, cztery
+     razy gestszy detal — wlasny slownik tekstu (ze starego przetrwalo 3193 z
+     8192 tokenow) i trening na 2 357 878 parach zamiast 1 780 125.
+
+     Obraz wychodzi 192 px zamiast 256: siatka jest gestsza wzgledem obrazu, nie
+     wzgledem ekranu. Mniejsze plotno, znacznie wiecej szczegolu na nim. */
+  { id: 'g-weird-11', name: 'G-Weird 1.1', desc: '62M · nowy tokenizer, gestsza siatka',
+    available: false, wire: 'g-weird-11', generates: true, family: 'weird',
+    short: '1.1' },
+
   { id: 'g-weird-1', name: 'G-Weird 1', desc: '62M · ostrzejszy dekoder',
     available: false, wire: 'g-weird-1', generates: true, family: 'weird',
     short: '1' },
